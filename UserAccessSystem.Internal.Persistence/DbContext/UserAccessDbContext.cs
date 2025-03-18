@@ -12,7 +12,53 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureBaseDomainEntity(modelBuilder);
+        ConfigureUserEntity(modelBuilder);
+        ConfigureGroupEntity(modelBuilder);
+        ConfigurePermissionEntity(modelBuilder);
+        ConfigureUserGroups(modelBuilder);
 
+        base.OnModelCreating(modelBuilder);
+    }
+
+    private static void ConfigureUserGroups(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserGroup>(entity =>
+        {
+            entity.HasKey(x => new
+            {
+                x.UserId,
+                x.GroupId,
+                x.IsDeleted,
+            });
+
+            entity.Property(x => x.UserId).IsRequired();
+            entity.HasOne(x => x.User).WithMany(x => x.Groups).HasForeignKey(x => x.UserId);
+
+            entity.Property(x => x.GroupId).IsRequired();
+            entity.HasOne(x => x.Group).WithMany(x => x.UserGroup).HasForeignKey(x => x.GroupId);
+        });
+    }
+
+    private static void ConfigurePermissionEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.Description).IsRequired().HasMaxLength(150);
+        });
+    }
+
+    private static void ConfigureGroupEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Group>(entity =>
+        {
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.Description).HasMaxLength(150);
+        });
+    }
+
+    private static void ConfigureUserEntity(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<User>(entity =>
         {
             entity.Property(x => x.Email).IsRequired().HasMaxLength(60);
@@ -20,14 +66,6 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             entity.HasIndex(x => x.Username).IsUnique();
             entity.Property(x => x.LockStatus).IsRequired().HasDefaultValue(LockStatus.None);
         });
-
-        modelBuilder.Entity<Group>(entity =>
-        {
-            entity.Property(x => x.Name).IsRequired().HasMaxLength(20);
-            entity.Property(x => x.Description).HasMaxLength(150);
-        });
-
-        base.OnModelCreating(modelBuilder);
     }
 
     private static void ConfigureBaseDomainEntity(ModelBuilder modelBuilder)
