@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
       <Reference Include="Microsoft.Extensions.Hosting.Abstractions">
         <HintPath>..\..\..\..\..\Program Files\dotnet\shared\Microsoft.AspNetCore.App\8.0.11\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
       </Reference>
@@ -15,6 +16,12 @@
     <ItemGroup>
       <ProjectReference Include="..\UserAccessSystem.Internal.Application\UserAccessSystem.Internal.Application.csproj" />
       <ProjectReference Include="..\UserAccessSystem.Internal.Domain\UserAccessSystem.Internal.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.3" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
     </ItemGroup>
 
 </Project>
