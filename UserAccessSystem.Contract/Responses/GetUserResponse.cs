@@ -1,4 +1,4 @@
-namespace UserAccessSystem.Contract
+namespace UserAccessSystem.Contract.Responses
 {
     public readonly struct GetUserResponse
     {

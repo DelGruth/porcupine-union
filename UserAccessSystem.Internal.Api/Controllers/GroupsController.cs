@@ -6,7 +6,7 @@ namespace UserAccessSystem.Internal.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class UsersController : ControllerBase
+public class GroupsController : ControllerBase
 {
     [HttpGet()]
     [Route("{id:guid}")]
