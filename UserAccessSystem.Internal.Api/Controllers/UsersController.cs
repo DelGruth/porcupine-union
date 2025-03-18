@@ -18,11 +18,11 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet()]
-    public Task<Response<GetAllResponse>> Get()
+    public Task<Response<GetAllUsersResponse>> Get()
     {
         return Task.FromResult(
-            new Response<GetAllResponse>(
-                new GetAllResponse()
+            new Response<GetAllUsersResponse>(
+                new GetAllUsersResponse()
                 {
                     Names = Enumerable
                         .Range(1, 19)

@@ -10,21 +10,21 @@ public class GroupsController : ControllerBase
 {
     [HttpGet()]
     [Route("{id:guid}")]
-    public Task<Response<GetUserResponse>> Get([FromRoute] Guid id)
+    public Task<Response<GetGroupResponse>> Get([FromRoute] Guid id)
     {
         return Task.FromResult(
-            new Response<GetUserResponse>(new GetUserResponse() { Name = id.ToString() })
+            new Response<GetGroupResponse>(new GetGroupResponse() { GroupName = id.ToString() })
         );
     }
 
     [HttpGet()]
-    public Task<Response<GetAllResponse>> Get()
+    public Task<Response<GetAllGroupsResponse>> Get()
     {
         return Task.FromResult(
-            new Response<GetAllResponse>(
-                new GetAllResponse()
+            new Response<GetAllGroupsResponse>(
+                new GetAllGroupsResponse()
                 {
-                    Names = Enumerable
+                    GroupNames = Enumerable
                         .Range(1, 19)
                         .Select(x => Guid.NewGuid().ToString())
                         .ToArray(),
