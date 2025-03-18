@@ -7,4 +7,5 @@ public class BaseDomainObj
     public DateTime EditedDateTime { get; set; }
     public Guid EditedById { get; set; }
     public long Version { get; set; }
+    public bool IsDeleted { get; set; }
 }
