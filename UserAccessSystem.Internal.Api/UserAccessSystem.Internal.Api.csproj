@@ -12,6 +12,9 @@
 
     <ItemGroup>
       <ProjectReference Include="..\UserAccessSystem.Contract\UserAccessSystem.Contract.csproj" />
+      <ProjectReference Include="..\UserAccessSystem.Internal.Application\UserAccessSystem.Internal.Application.csproj" />
+      <ProjectReference Include="..\UserAccessSystem.Internal.Infrastructure\UserAccessSystem.Internal.Infrastructure.csproj" />
+      <ProjectReference Include="..\UserAccessSystem.Internal.Persistence\UserAccessSystem.Internal.Persistence.csproj" />
     </ItemGroup>
 
 </Project>
