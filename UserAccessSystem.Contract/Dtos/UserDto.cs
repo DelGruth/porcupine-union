@@ -2,4 +2,14 @@ using UserAccessSystem.Domain.User;
 
 namespace UserAccessSystem.Contract.Dtos;
 
-public readonly struct UserDto(User user);
+public class UserDto
+{
+    public User User { get; set; }
+
+    public UserDto() { }
+
+    public UserDto(User user)
+    {
+        User = user;
+    }
+}
