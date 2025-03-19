@@ -13,6 +13,8 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
 {
     public DbSet<User?> Users { get; set; }
     public DbSet<Group> Groups { get; set; }
+    public DbSet<UserGroupMembership> UserGroupMemberships { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

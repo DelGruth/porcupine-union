@@ -25,12 +25,10 @@ public class UsersController(IUserService userService) : ControllerBase
     [HttpGet()]
     [AllowAnonymous]
     public async ValueTask<Response<IEnumerable<UserDto>>> Get([FromQuery] DateTime? lastEntry) =>
-        await userService.GetAllUsers(lastEntry);
+        await userService.GetAllUsersAsync(lastEntry);
 
     [HttpPost()]
     [AllowAnonymous]
-    public async ValueTask<Response<bool>> Post([FromBody] CreateUserRequest request)
-    {
-        return await userService.Create(request);
-    }
+    public async ValueTask<Response<UserDto>> Post([FromBody] CreateUserRequest request) =>
+        await userService.CreateAsync(request);
 }

@@ -10,7 +10,7 @@ namespace UserAccessSystem.Internal.Infrastructure.Service;
 
 public class UserService(HybridCache cache, IUserRepository userRepository) : IUserService
 {
-    public async ValueTask<Response<IEnumerable<UserDto>>> GetAllUsers(
+    public async ValueTask<Response<IEnumerable<UserDto>>> GetAllUsersAsync(
         DateTime? lastEntry,
         CancellationToken ctx = default
     )
@@ -34,7 +34,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
         );
     }
 
-    public async Task<Response<UserDto>> Create(
+    public async Task<Response<UserDto>> CreateAsync(
         CreateUserRequest request,
         CancellationToken ctx = default
     )
@@ -46,34 +46,23 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
             : new Response<UserDto>(new UserDto(dbRequest.Data));
     }
 
-    public async Task<Response<bool>> AddToGroup(
+    public async Task<Response<bool>> AddToGroupAsync(
         Guid id,
         Guid groupId,
         CancellationToken ctx = default
-    )
-    {
-        throw new NotImplementedException();
-    }
+    ) => await userRepository.AddToGroupAsync(id, groupId, ctx);
 
-    public async Task<Response<bool>> Update(
+    public async Task<Response<bool>> UpdateAsync(
         CreateUserRequest request,
         CancellationToken ctx = default
-    )
-    {
-        throw new NotImplementedException();
-    }
+    ) => await userRepository.UpdateAsync(request, ctx);
 
-    public async Task<Response<bool>> Delete(Guid id, CancellationToken ctx = default)
-    {
-        throw new NotImplementedException();
-    }
+    public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default) =>
+        await userRepository.DeleteAsync(id, ctx);
 
-    public async Task<Response<bool>> RemoveFromGroup(
+    public async Task<Response<bool>> RemoveFromGroupAsync(
         Guid id,
         Guid groupId,
         CancellationToken ctx = default
-    )
-    {
-        throw new NotImplementedException();
-    }
+    ) => await userRepository.RemoveFromGroupAsync(id, groupId, ctx);
 }

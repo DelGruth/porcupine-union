@@ -2,4 +2,14 @@ using UserAccessSystem.Domain.Permissions;
 
 namespace UserAccessSystem.Contract.Dtos;
 
-public readonly struct PermissionDto(Permission permission);
+public class PermissionDto
+{
+    public Permission Permission { get; set; }
+
+    public PermissionDto() { }
+
+    public PermissionDto(Permission permission)
+    {
+        this.Permission = permission;
+    }
+}

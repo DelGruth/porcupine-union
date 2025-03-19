@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Requests\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\UserAccessSystem.Internal.Domain\UserAccessSystem.Internal.Domain.csproj" />
     </ItemGroup>
 

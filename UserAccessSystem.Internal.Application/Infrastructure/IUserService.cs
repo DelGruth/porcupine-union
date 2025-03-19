@@ -6,14 +6,18 @@ namespace UserAccessSystem.Internal.Application.Infrastructure;
 
 public interface IUserService
 {
-    ValueTask<Response<IEnumerable<UserDto>>> GetAllUsers(
+    ValueTask<Response<IEnumerable<UserDto>>> GetAllUsersAsync(
         DateTime? lastEntry,
         CancellationToken ctx = default
     );
 
-    Task<Response<UserDto>> Create(CreateUserRequest request, CancellationToken ctx = default);
-    Task<Response<bool>> AddToGroup(Guid id, Guid groupId, CancellationToken ctx = default);
-    Task<Response<bool>> Update(CreateUserRequest request, CancellationToken ctx = default);
-    Task<Response<bool>> Delete(Guid id, CancellationToken ctx = default);
-    Task<Response<bool>> RemoveFromGroup(Guid id, Guid groupId, CancellationToken ctx = default);
+    Task<Response<UserDto>> CreateAsync(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> AddToGroupAsync(Guid id, Guid groupId, CancellationToken ctx = default);
+    Task<Response<bool>> UpdateAsync(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default);
+    Task<Response<bool>> RemoveFromGroupAsync(
+        Guid id,
+        Guid groupId,
+        CancellationToken ctx = default
+    );
 }

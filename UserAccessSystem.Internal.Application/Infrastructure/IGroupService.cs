@@ -5,5 +5,5 @@ namespace UserAccessSystem.Internal.Application.Infrastructure;
 
 public interface IGroupService
 {
-    Task<Response<GroupDto>> GetAllGroups();
+    Task<Response<GroupDto>> GetAllGroupsAsync();
 }
