@@ -175,7 +175,7 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             .HasData(
                 new User()
                 {
-                    Id = Guid.NewGuid(),
+                    Id = suId,
                     Username = "SU",
                     Password = "ecdsa",
                     Email = "null@undefined.com",
