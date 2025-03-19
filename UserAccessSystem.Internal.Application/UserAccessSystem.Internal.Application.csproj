@@ -16,5 +16,13 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Peristence\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\UserAccessSystem.Contract\UserAccessSystem.Contract.csproj" />
+    </ItemGroup>
     
 </Project>

@@ -7,7 +7,7 @@ using UserAccessSystem.Internal.Persistence.Interfaces;
 namespace UserAccessSystem.Internal.Persistence.Repository;
 
 public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
-    where T : BaseDomainObj
+    where T : BaseDomainObj?
 {
     public async Task<T> AddAsync(T entity)
     {

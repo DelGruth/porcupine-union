@@ -11,7 +11,7 @@ namespace UserAccessSystem.Internal.Persistence.DbContext;
 public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     : Microsoft.EntityFrameworkCore.DbContext(options: opt)
 {
-    public DbSet<User> Users { get; set; }
+    public DbSet<User?> Users { get; set; }
     public DbSet<Group> Groups { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

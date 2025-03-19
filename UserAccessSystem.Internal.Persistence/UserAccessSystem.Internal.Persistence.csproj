@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\UserAccessSystem.Contract\UserAccessSystem.Contract.csproj" />
       <ProjectReference Include="..\UserAccessSystem.Internal.Application\UserAccessSystem.Internal.Application.csproj" />
       <ProjectReference Include="..\UserAccessSystem.Internal.Domain\UserAccessSystem.Internal.Domain.csproj" />
     </ItemGroup>
