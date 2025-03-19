@@ -1,6 +1,8 @@
+using UserAccessSystem.Contract.Dtos;
+
 namespace UserAccessSystem.Contract.Responses;
 
 public readonly struct GetAllUsersResponse
 {
-    public string[] Names { get; init; }
+    public IEnumerable<UserDto> Users { get; }
 }

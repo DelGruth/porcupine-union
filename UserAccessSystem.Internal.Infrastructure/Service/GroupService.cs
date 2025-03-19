@@ -6,5 +6,8 @@ namespace UserAccessSystem.Internal.Infrastructure.Service;
 
 public class GroupService : IGroupService
 {
-    public Task<Response<GroupDto>> GetAllGroups() { }
+    public Task<Response<GroupDto>> GetAllGroups()
+    {
+        throw new NotImplementedException();
+    }
 }

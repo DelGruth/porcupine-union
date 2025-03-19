@@ -5,5 +5,8 @@ namespace UserAccessSystem.Internal.Application.Infrastructure;
 
 public interface IUserService
 {
-    Task<Response<UserDto>> GetAllUsers();
+    ValueTask<Response<IEnumerable<UserDto>>> GetAllUsers(
+        DateTime? lastEntry,
+        CancellationToken ctx = default
+    );
 }

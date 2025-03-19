@@ -7,5 +7,8 @@ namespace UserAccessSystem.Internal.Infrastructure.Service;
 
 public class PermissionService(HybridCache cache) : IPermissionService
 {
-    public Task<Response<PermissionDto>> GetAllPermissions() { }
+    public Task<Response<PermissionDto>> GetAllPermissions()
+    {
+        throw new NotImplementedException();
+    }
 }

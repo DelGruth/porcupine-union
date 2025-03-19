@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
+using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Responses;
+using UserAccessSystem.Internal.Application.Infrastructure;
 
 namespace UserAccessSystem.Internal.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class UsersController : ControllerBase
+public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet()]
     [Route("{id:guid}")]
@@ -18,18 +20,14 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet()]
-    public Task<Response<GetAllUsersResponse>> Get()
+    public ValueTask<Response<IEnumerable<UserDto>>> Get()
     {
-        return Task.FromResult(
-            new Response<GetAllUsersResponse>(
-                new GetAllUsersResponse()
-                {
-                    Names = Enumerable
-                        .Range(1, 19)
-                        .Select(x => Guid.NewGuid().ToString())
-                        .ToArray(),
-                }
-            )
-        );
+        return userService.GetAllUsers(null);
+    }
+
+    [HttpGet()]
+    public ValueTask<Response<IEnumerable<UserDto>>> Get([FromQuery] DateTime? lastEntry)
+    {
+        return userService.GetAllUsers(lastEntry);
     }
 }
