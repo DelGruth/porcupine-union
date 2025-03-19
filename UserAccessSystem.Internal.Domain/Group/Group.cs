@@ -1,4 +1,8 @@
-namespace UserAccessSystem.Domain;
+using UserAccessSystem.Domain.Common;
+using UserAccessSystem.Domain.Permissions;
+using UserAccessSystem.Domain.User;
+
+namespace UserAccessSystem.Domain.Group;
 
 public class Group : BaseDomainObj
 {

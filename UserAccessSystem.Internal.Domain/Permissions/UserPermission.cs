@@ -1,11 +1,13 @@
-namespace UserAccessSystem.Domain;
+using UserAccessSystem.Domain.Common;
+
+namespace UserAccessSystem.Domain.Permissions;
 
 public class UserPermission : BaseDomainObj
 {
     public required Guid PermissionId { get; set; }
     public Permission? Permission { get; set; }
     public required Guid UserId { get; set; }
-    public User? User { get; set; }
+    public User.User? User { get; set; }
     public required Guid GroupId { get; set; }
-    public Group? Group { get; set; }
+    public Group.Group? Group { get; set; }
 }

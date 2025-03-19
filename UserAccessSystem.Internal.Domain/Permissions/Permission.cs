@@ -1,4 +1,6 @@
-namespace UserAccessSystem.Domain;
+using UserAccessSystem.Domain.Common;
+
+namespace UserAccessSystem.Domain.Permissions;
 
 public class Permission : BaseDomainObj
 {

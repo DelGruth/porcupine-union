@@ -1,4 +1,8 @@
-namespace UserAccessSystem.Domain;
+using UserAccessSystem.Domain.Common;
+using UserAccessSystem.Domain.Permissions;
+using UserAccessSystem.Domain.UserDetail;
+
+namespace UserAccessSystem.Domain.User;
 
 public class User : BaseDomainObj
 {

@@ -1,4 +1,4 @@
-namespace UserAccessSystem.Domain;
+namespace UserAccessSystem.Domain.Common;
 
 public class BaseDomainObj
 {

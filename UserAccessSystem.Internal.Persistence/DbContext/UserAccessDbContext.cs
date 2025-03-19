@@ -1,5 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Domain;
+using UserAccessSystem.Domain.Common;
+using UserAccessSystem.Domain.Group;
+using UserAccessSystem.Domain.Permissions;
+using UserAccessSystem.Domain.User;
+using UserAccessSystem.Domain.UserDetail;
 
 namespace UserAccessSystem.Internal.Persistence.DbContext;
 

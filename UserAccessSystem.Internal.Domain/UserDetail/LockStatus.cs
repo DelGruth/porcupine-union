@@ -1,4 +1,4 @@
-namespace UserAccessSystem.Domain;
+namespace UserAccessSystem.Domain.UserDetail;
 
 public enum LockStatus : byte
 {
