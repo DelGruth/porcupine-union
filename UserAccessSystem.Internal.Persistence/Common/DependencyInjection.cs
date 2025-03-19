@@ -14,14 +14,14 @@ public static class DependencyInjection
     public static IHostApplicationBuilder AddPersistence(this IHostApplicationBuilder builder)
     {
         builder.Services.AddDbContext<UserAccessDbContext>(config =>
-            config.UseInMemoryDatabase("mainDb")
+            config.UseInMemoryDatabase("mainDb").EnableSensitiveDataLogging().EnableDetailedErrors()
         );
 
         builder.Services.AddDistributedMemoryCache();
 
-        builder.Services.AddSingleton<IUserRepository, UserRepository>();
-        builder.Services.AddSingleton<IPermissionRepository, PermissionRepository>();
-        builder.Services.AddSingleton<IGroupRepository, GroupRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+        builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 
         return builder;
     }

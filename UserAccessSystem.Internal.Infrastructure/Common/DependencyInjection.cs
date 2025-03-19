@@ -10,9 +10,9 @@ public static class DependencyInjection
     public static IHostApplicationBuilder AddInfrastrucutre(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHybridCache();
-        builder.Services.AddSingleton<IGroupService, GroupService>();
-        builder.Services.AddSingleton<IUserService, UserService>();
-        builder.Services.AddSingleton<IPermissionService, PermissionService>();
+        builder.Services.AddScoped<IGroupService, GroupService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IPermissionService, PermissionService>();
         return builder;
     }
 }

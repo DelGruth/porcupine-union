@@ -24,6 +24,8 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
         ConfigureGroupPermissionEntity(modelBuilder);
         ConfigureUserPermissionEntity(modelBuilder);
 
+        SeedData(modelBuilder);
+
         base.OnModelCreating(modelBuilder);
     }
 

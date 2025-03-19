@@ -10,9 +10,8 @@ public class User : BaseDomainObj
     public required string Email { get; set; }
     public required LockStatus LockStatus { get; set; }
     public required string Password { get; set; }
-    public IEnumerable<UserGroupMembership> Groups { get; set; } =
-        Array.Empty<UserGroupMembership>();
 
-    public IEnumerable<UserPermission> UserPermissions { get; set; } =
-        ArraySegment<UserPermission>.Empty;
+    public IEnumerable<UserGroupMembership> Groups { get; set; } = new List<UserGroupMembership>();
+
+    public IEnumerable<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
 }
