@@ -15,14 +15,64 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
         ConfigureUserEntity(modelBuilder);
         ConfigureGroupEntity(modelBuilder);
         ConfigurePermissionEntity(modelBuilder);
-        ConfigureUserGroups(modelBuilder);
+        ConfigureUserPermissionGroupEntity(modelBuilder);
+        ConfigureGroupPermissionEntity(modelBuilder);
+        ConfigureUserPermissionEntity(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
     }
 
-    private static void ConfigureUserGroups(ModelBuilder modelBuilder)
+    private static void ConfigureUserPermissionEntity(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<UserGroup>(entity =>
+        modelBuilder.Entity<UserPermission>(entity =>
+        {
+            entity.HasKey(x => new
+            {
+                x.UserId,
+                x.PermissionId,
+                x.IsDeleted,
+            });
+
+            entity.Property(x => x.UserId).IsRequired();
+            entity
+                .HasOne(x => x.User)
+                .WithMany(x => x.UserPermissions)
+                .HasForeignKey(x => x.PermissionId);
+
+            entity
+                .HasOne(x => x.Permission)
+                .WithMany(x => x.UserPermissions)
+                .HasForeignKey(x => x.UserId);
+        });
+    }
+
+    private static void ConfigureGroupPermissionEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<GroupPermission>(entity =>
+        {
+            entity.HasKey(x => new
+            {
+                x.GroupId,
+                x.PermissionId,
+                x.IsDeleted,
+            });
+
+            entity.Property(x => x.GroupId).IsRequired();
+            entity
+                .HasOne(x => x.Group)
+                .WithMany(x => x.GroupPermissions)
+                .HasForeignKey(x => x.PermissionId);
+
+            entity
+                .HasOne(x => x.Permission)
+                .WithMany(x => x.GroupPermissions)
+                .HasForeignKey(x => x.GroupId);
+        });
+    }
+
+    private static void ConfigureUserPermissionGroupEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<UserGroupMembership>(entity =>
         {
             entity.HasKey(x => new
             {
@@ -35,7 +85,7 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             entity.HasOne(x => x.User).WithMany(x => x.Groups).HasForeignKey(x => x.UserId);
 
             entity.Property(x => x.GroupId).IsRequired();
-            entity.HasOne(x => x.Group).WithMany(x => x.UserGroup).HasForeignKey(x => x.GroupId);
+            entity.HasOne(x => x.Group).WithMany(x => x.Users).HasForeignKey(x => x.GroupId);
         });
     }
 
