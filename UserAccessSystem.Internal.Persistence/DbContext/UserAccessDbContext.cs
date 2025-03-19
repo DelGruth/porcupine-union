@@ -34,15 +34,23 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             });
 
             entity.Property(x => x.UserId).IsRequired();
+            entity.Property(x => x.PermissionId).IsRequired();
+            entity.Property(x => x.GroupId).IsRequired();
+
             entity
                 .HasOne(x => x.User)
                 .WithMany(x => x.UserPermissions)
-                .HasForeignKey(x => x.PermissionId);
+                .HasForeignKey(x => x.UserId);
 
             entity
                 .HasOne(x => x.Permission)
                 .WithMany(x => x.UserPermissions)
-                .HasForeignKey(x => x.UserId);
+                .HasForeignKey(x => x.PermissionId);
+
+            entity
+                .HasOne(x => x.Group)
+                .WithMany(x => x.MemberPermissions)
+                .HasForeignKey(x => x.GroupId);
         });
     }
 
@@ -61,12 +69,12 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             entity
                 .HasOne(x => x.Group)
                 .WithMany(x => x.GroupPermissions)
-                .HasForeignKey(x => x.PermissionId);
+                .HasForeignKey(x => x.GroupId);
 
             entity
                 .HasOne(x => x.Permission)
                 .WithMany(x => x.GroupPermissions)
-                .HasForeignKey(x => x.GroupId);
+                .HasForeignKey(x => x.PermissionId);
         });
     }
 
@@ -237,6 +245,50 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
                         Name = "CC",
                         Description = "Call center",
                     },
+                }
+            );
+
+        modelBuilder
+            .Entity<UserPermission>()
+            .HasData(
+                new List<UserPermission>()
+                {
+                    new UserPermission
+                    {
+                        UserId = suId,
+                        PermissionId = allPermId,
+                        GroupId = group1Id,
+                    },
+                    new UserPermission
+                    {
+                        UserId = suId,
+                        PermissionId = superUserPermId,
+                        GroupId = group2Id,
+                    },
+                }
+            );
+
+        modelBuilder
+            .Entity<GroupPermission>()
+            .HasData(
+                new List<GroupPermission>()
+                {
+                    new GroupPermission { GroupId = group1Id, PermissionId = allPermId },
+                    new GroupPermission
+                    {
+                        GroupId = group2Id,
+                        PermissionId = accountLookupLevel1Id,
+                    },
+                    new GroupPermission { GroupId = group2Id, PermissionId = level2GeneralPermId },
+                }
+            );
+
+        modelBuilder
+            .Entity<UserGroupMembership>()
+            .HasData(
+                new List<UserGroupMembership>
+                {
+                    new UserGroupMembership { UserId = suId, GroupId = group1Id },
                 }
             );
     }

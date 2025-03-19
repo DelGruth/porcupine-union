@@ -8,6 +8,9 @@ public class Group : BaseDomainObj
     public IEnumerable<UserGroupMembership> Users { get; set; } =
         ArraySegment<UserGroupMembership>.Empty;
 
+    public IEnumerable<UserPermission> MemberPermissions { get; set; } =
+        ArraySegment<UserPermission>.Empty;
+
     public IEnumerable<GroupPermission> GroupPermissions { get; set; } =
         ArraySegment<GroupPermission>.Empty;
 }
