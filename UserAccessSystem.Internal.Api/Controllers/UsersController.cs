@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Dtos;
+using UserAccessSystem.Contract.Requests;
 using UserAccessSystem.Contract.Responses;
 using UserAccessSystem.Internal.Application.Infrastructure;
 
@@ -12,6 +14,7 @@ public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet()]
     [Route("{id:guid}")]
+    [AllowAnonymous]
     public Task<Response<GetUserResponse>> Get([FromRoute] Guid id)
     {
         return Task.FromResult(
@@ -20,14 +23,14 @@ public class UsersController(IUserService userService) : ControllerBase
     }
 
     [HttpGet()]
-    public ValueTask<Response<IEnumerable<UserDto>>> Get()
-    {
-        return userService.GetAllUsers(null);
-    }
+    [AllowAnonymous]
+    public async ValueTask<Response<IEnumerable<UserDto>>> Get([FromQuery] DateTime? lastEntry) =>
+        await userService.GetAllUsers(lastEntry);
 
-    [HttpGet()]
-    public ValueTask<Response<IEnumerable<UserDto>>> Get([FromQuery] DateTime? lastEntry)
+    [HttpPost()]
+    [AllowAnonymous]
+    public async ValueTask<Response<bool>> Post([FromBody] CreateUserRequest request)
     {
-        return userService.GetAllUsers(lastEntry);
+        return await userService.Create(request);
     }
 }
