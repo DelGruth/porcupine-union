@@ -95,6 +95,8 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
         {
             entity.Property(x => x.Name).IsRequired().HasMaxLength(20);
             entity.Property(x => x.Description).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.ReadOnly).IsRequired();
+            entity.Property(x => x.WriteOnly).IsRequired();
         });
     }
 
@@ -115,6 +117,7 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             entity.Property(x => x.Username).IsRequired().HasMaxLength(20);
             entity.HasIndex(x => x.Username).IsUnique();
             entity.Property(x => x.LockStatus).IsRequired().HasDefaultValue(LockStatus.None);
+            entity.Property(x => x.Password).IsRequired().HasMaxLength(60);
         });
     }
 
@@ -153,5 +156,88 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
                 .Property(nameof(BaseDomainObj.IsDeleted))
                 .HasDefaultValue(0);
         }
+    }
+
+    private void SeedData(ModelBuilder modelBuilder)
+    {
+        var suId = Guid.NewGuid();
+
+        modelBuilder
+            .Entity<User>()
+            .HasData(
+                new User()
+                {
+                    Id = Guid.NewGuid(),
+                    Username = "SU",
+                    Password = "ecdsa",
+                    Email = "null@undefined.com",
+                    LockStatus = LockStatus.None,
+                }
+            );
+
+        var allPermId = Guid.NewGuid();
+        var superUserPermId = Guid.NewGuid();
+        var accountLookupLevel1Id = Guid.NewGuid();
+        var level2GeneralPermId = Guid.NewGuid();
+
+        modelBuilder
+            .Entity<Permission>()
+            .HasData(
+                new Permission
+                {
+                    Id = allPermId,
+                    Name = "All",
+                    Description = "All permissions",
+                    ReadOnly = false,
+                    WriteOnly = false,
+                },
+                new Permission
+                {
+                    Id = accountLookupLevel1Id,
+                    Name = "AccountLookup_Level1",
+                    Description = "Level 1 permission",
+                    ReadOnly = true,
+                    WriteOnly = false,
+                },
+                new Permission
+                {
+                    Id = superUserPermId,
+                    Name = "SU",
+                    Description = "Not so super user",
+                    ReadOnly = false,
+                    WriteOnly = true,
+                },
+                new Permission
+                {
+                    Id = level2GeneralPermId,
+                    Name = "Level 2",
+                    Description = "Poor user permission pack",
+                    ReadOnly = true,
+                    WriteOnly = true,
+                }
+            );
+
+        var group1Id = Guid.NewGuid();
+        var group2Id = Guid.NewGuid();
+
+        modelBuilder
+            .Entity<Group>()
+            .HasData(
+                new List<Group>()
+                {
+                    new Group
+                    {
+                        Id = group1Id,
+                        Name = "Admins",
+                        Description = "High Tower",
+                    },
+                    new Group
+                    {
+                        Id = group2Id,
+                        Name = "CC",
+                        Description = "Call center",
+                    },
+                }
+            );
     }
 }
