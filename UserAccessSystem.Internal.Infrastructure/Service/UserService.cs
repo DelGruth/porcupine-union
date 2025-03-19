@@ -20,7 +20,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
             cacheKey,
             async ctx =>
             {
-                var dataRequest = await userRepository.GetAllAsync(lastEntry, 100);
+                var dataRequest = await userRepository.GetAllAsync(lastEntry, 100, ctx);
 
                 if (!dataRequest.Success)
                     return new Response<IEnumerable<UserDto>>(ErrorCode.UnexpectedError);
@@ -34,27 +34,45 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
         );
     }
 
-    public async Task<Response<bool>> Create(CreateUserRequest request)
+    public async Task<Response<UserDto>> Create(
+        CreateUserRequest request,
+        CancellationToken ctx = default
+    )
+    {
+        var dbRequest = await userRepository.AddUserAsync(request, ctx);
+
+        return !dbRequest.Success
+            ? new Response<UserDto>(dbRequest.ErrorCode)
+            : new Response<UserDto>(new UserDto(dbRequest.Data));
+    }
+
+    public async Task<Response<bool>> AddToGroup(
+        Guid id,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Response<bool>> AddToGroup(Guid id, Guid groupId)
+    public async Task<Response<bool>> Update(
+        CreateUserRequest request,
+        CancellationToken ctx = default
+    )
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Response<bool>> Update(CreateUserRequest request)
+    public async Task<Response<bool>> Delete(Guid id, CancellationToken ctx = default)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Response<bool>> Delete(Guid id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task<Response<bool>> RemoveFromGroup(Guid id, Guid groupId)
+    public async Task<Response<bool>> RemoveFromGroup(
+        Guid id,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
     {
         throw new NotImplementedException();
     }

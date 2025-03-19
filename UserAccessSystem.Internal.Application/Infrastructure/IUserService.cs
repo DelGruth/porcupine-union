@@ -11,9 +11,9 @@ public interface IUserService
         CancellationToken ctx = default
     );
 
-    Task<Response<bool>> Create(CreateUserRequest request);
-    Task<Response<bool>> AddToGroup(Guid id, Guid groupId);
-    Task<Response<bool>> Update(CreateUserRequest request);
-    Task<Response<bool>> Delete(Guid id);
-    Task<Response<bool>> RemoveFromGroup(Guid id, Guid groupId);
+    Task<Response<UserDto>> Create(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> AddToGroup(Guid id, Guid groupId, CancellationToken ctx = default);
+    Task<Response<bool>> Update(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> Delete(Guid id, CancellationToken ctx = default);
+    Task<Response<bool>> RemoveFromGroup(Guid id, Guid groupId, CancellationToken ctx = default);
 }
