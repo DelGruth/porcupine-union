@@ -10,6 +10,11 @@ public static class DependencyInjection
 {
     public static IHostApplicationBuilder AddPersistence(this IHostApplicationBuilder builder)
     {
+        builder.Services.AddDbContext<UserAccessDbContext>(config =>
+            config.UseInMemoryDatabase("mainDb")
+        );
+
+        builder.Services.AddDistributedMemoryCache();
         return builder;
     }
 

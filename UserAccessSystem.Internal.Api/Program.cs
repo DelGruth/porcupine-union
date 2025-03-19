@@ -13,6 +13,8 @@ builder.AddApplication().AddInfrastrucutre().AddPersistence();
 
 var app = builder.Build();
 
+app.BuildPersistence();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
