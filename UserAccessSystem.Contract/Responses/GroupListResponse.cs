@@ -2,7 +2,7 @@ using UserAccessSystem.Contract.Dtos;
 
 namespace UserAccessSystem.Contract.Responses;
 
-public record GroupListResponse
+public class GroupListResponse
 {
-    public required IEnumerable<GroupDto> Groups { get; init; }
+    public IEnumerable<GroupDto> Groups { get; set; } = new List<GroupDto>();
 }

@@ -7,17 +7,24 @@ public class UserDto
     public Guid Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public IEnumerable<Guid> GroupIds { get; set; } = new List<Guid>();
-    public IEnumerable<Guid> PermissionIds { get; set; } = new List<Guid>();
+    public IEnumerable<GroupSimpleDto>? Groups { get; set; }
+    public IEnumerable<PermissionDto>? Permissions { get; set; }
 
     public UserDto() { }
 
     public UserDto(User user)
     {
+        if (user == null)
+            return;
+
         Id = user.Id;
         Username = user.Username;
         Email = user.Email;
-        GroupIds = user.Groups?.Select(g => g.GroupId) ?? new List<Guid>();
-        PermissionIds = user.UserPermissions?.Select(p => p.PermissionId) ?? new List<Guid>();
+        Groups = user
+            .Groups?.Where(g => g?.Group != null && !g.IsDeleted)
+            .Select(g => new GroupSimpleDto(g.Group));
+        Permissions = user
+            .UserPermissions?.Where(p => p?.Permission != null && !p.IsDeleted)
+            .Select(p => new PermissionDto(p.Permission));
     }
 }

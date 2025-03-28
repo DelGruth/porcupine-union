@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UserAccessSystem.Contract.Clients;
 
 namespace UserAccessSystem.Contract.Common;
 
