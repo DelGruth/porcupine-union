@@ -11,7 +11,7 @@ public interface IUserService
         CancellationToken ctx = default
     );
     Task<Response<UserDto>> CreateAsync(CreateUserRequest request, CancellationToken ctx = default);
-    Task<Response<bool>> UpdateAsync(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> UpdateAsync(UpdateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default);
     Task<Response<bool>> AddUserToGroupAsync(
         Guid userId,
@@ -37,6 +37,10 @@ public interface IUserService
         Guid userId,
         Guid permissionId,
         Guid groupId,
+        CancellationToken ctx = default
+    );
+    Task<Response<IEnumerable<GroupSimpleDto>>> GetUserGroupsAsync(
+        Guid userId,
         CancellationToken ctx = default
     );
 }

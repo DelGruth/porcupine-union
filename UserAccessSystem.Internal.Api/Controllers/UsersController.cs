@@ -16,51 +16,79 @@ public class UsersController(IUserService userService) : ControllerBase
     [HttpGet]
     [Auth("SU", true, false)]
     public async ValueTask<Response<IEnumerable<UserDto>>> GetAll(
-        [FromQuery] DateTime? lastEntry
-    ) => await userService.GetAllUsersAsync(lastEntry);
+        [FromQuery] DateTime? lastEntry,
+        CancellationToken ctx = default
+    ) => await userService.GetAllUsersAsync(lastEntry, ctx);
 
     [HttpPost]
-    public async Task<Response<UserDto>> Create([FromBody] CreateUserRequest request) =>
-        await userService.CreateAsync(request);
+    public async Task<Response<UserDto>> Create(
+        [FromBody] CreateUserRequest request,
+        CancellationToken ctx = default
+    ) => await userService.CreateAsync(request, ctx);
 
-    [HttpPut]
-    public async Task<Response<bool>> Update([FromBody] CreateUserRequest request) =>
-        await userService.UpdateAsync(request);
-
-    [HttpDelete("{id:guid}")]
-    public async Task<Response<bool>> Delete([FromRoute] Guid id) =>
-        await userService.DeleteAsync(id);
-
-    [HttpPost("{id:guid}/groups/{groupId:guid}")]
-    public async Task<Response<bool>> AddToGroup([FromRoute] Guid id, [FromRoute] Guid groupId) =>
-        await userService.AddUserToGroupAsync(id, groupId);
-
-    [HttpDelete("{id:guid}/groups/{groupId:guid}")]
-    public async Task<Response<bool>> RemoveFromGroup(
+    [HttpPut("{id:guid}")]
+    public async Task<Response<bool>> Update(
         [FromRoute] Guid id,
-        [FromRoute] Guid groupId
-    ) => await userService.RemoveUserFromGroupAsync(id, groupId);
-
-    [HttpGet]
-    [Route("{id:guid}/permissions")]
-    [Auth("SU", true, false)]
-    public async Task<Response<IEnumerable<PermissionDto>>> GetUserPermissions(
-        [FromRoute] Guid id
-    ) => await userService.GetUserPermissionsAsync(id);
-
-    [HttpPost]
-    [Route("{userId:guid}/groups/{groupId:guid}/permissions/{permissionId:guid}")]
-    public async Task<Response<bool>> AddPermissionToUser(
-        [FromRoute] Guid userId,
-        [FromRoute] Guid groupId,
-        [FromRoute] Guid permissionId
-    ) => await userService.AddPermissionToUserAsync(userId, permissionId, groupId);
+        [FromBody] UpdateUserRequest request,
+        CancellationToken ctx = default
+    )
+    {
+        request.Id = id;
+        return await userService.UpdateAsync(request, ctx);
+    }
 
     [HttpDelete]
-    [Route("{userId:guid}/groups/{groupId:guid}/permissions/{permissionId:guid}")]
+    public async Task<Response<bool>> Delete(
+        [FromBody] DeleteRequest request,
+        CancellationToken ctx = default
+    ) => await userService.DeleteAsync(request.Id, ctx);
+
+    [HttpPost("group")]
+    public async Task<Response<bool>> AddToGroup(
+        [FromBody] AddUserToGroupRequest request,
+        CancellationToken ctx = default
+    ) => await userService.AddUserToGroupAsync(request.UserId, request.GroupId, ctx);
+
+    [HttpDelete("group")]
+    public async Task<Response<bool>> RemoveFromGroup(
+        [FromBody] AddUserToGroupRequest request,
+        CancellationToken ctx = default
+    ) => await userService.RemoveUserFromGroupAsync(request.UserId, request.GroupId, ctx);
+
+    [HttpGet("permissions")]
+    [Auth("SU", true, false)]
+    public async Task<Response<IEnumerable<PermissionDto>>> GetUserPermissions(
+        [FromQuery] Guid userId,
+        CancellationToken ctx = default
+    ) => await userService.GetUserPermissionsAsync(userId, ctx);
+
+    [HttpPost("permission")]
+    public async Task<Response<bool>> AddPermissionToUser(
+        [FromBody] AddUserPermissionRequest request,
+        CancellationToken ctx = default
+    ) =>
+        await userService.AddPermissionToUserAsync(
+            request.UserId,
+            request.PermissionId,
+            request.GroupId,
+            ctx
+        );
+
+    [HttpDelete("permission")]
     public async Task<Response<bool>> RemovePermissionFromUser(
+        [FromBody] AddUserPermissionRequest request,
+        CancellationToken ctx = default
+    ) =>
+        await userService.RemovePermissionFromUserAsync(
+            request.UserId,
+            request.PermissionId,
+            request.GroupId,
+            ctx
+        );
+
+    [HttpGet("{userId:guid}/groups")]
+    public async Task<Response<IEnumerable<GroupSimpleDto>>> GetUserGroups(
         [FromRoute] Guid userId,
-        [FromRoute] Guid groupId,
-        [FromRoute] Guid permissionId
-    ) => await userService.RemovePermissionFromUserAsync(userId, permissionId, groupId);
+        CancellationToken ctx = default
+    ) => await userService.GetUserGroupsAsync(userId, ctx);
 }

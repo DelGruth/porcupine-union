@@ -10,6 +10,6 @@ public class Permission : BaseDomainObj
     public required bool WriteOnly { get; set; }
     public IEnumerable<GroupPermission> GroupPermissions { get; set; } =
         new List<GroupPermission>();
-
     public IEnumerable<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
+    public Guid? SourceGroupId { get; set; }
 }

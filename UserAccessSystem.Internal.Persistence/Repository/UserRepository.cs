@@ -126,11 +126,7 @@ public class UserRepository : Repository<User>, IUserRepository
                 .Where(u => !u.IsDeleted)
                 .Include(u => u.Groups.Where(g => !g.IsDeleted))
                 .ThenInclude(g => g.Group)
-                .ThenInclude(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
-                .ThenInclude(gp => gp.Permission)
-                .Include(u => u.UserPermissions.Where(p => !p.IsDeleted))
-                .ThenInclude(p => p.Permission)
-                .FirstOrDefaultAsync(ctx);
+                .FirstOrDefaultAsync(cancellationToken: ctx);
 
             if (user == null)
                 return new Response<User>(
@@ -138,13 +134,15 @@ public class UserRepository : Repository<User>, IUserRepository
                     $"User with ID {userId} not found"
                 );
 
+            user.Groups = user.Groups.Where(g => g.Group != null && !g.Group.IsDeleted).ToList();
+
             return new Response<User>(user);
         }
         catch (Exception ex)
         {
             return new Response<User>(
                 ErrorCode.UnexpectedError,
-                $"Error retrieving user with groups and permissions: {ex.Message}"
+                $"Error retrieving user with group memberships: {ex.Message}"
             );
         }
     }
@@ -160,9 +158,9 @@ public class UserRepository : Repository<User>, IUserRepository
             {
                 Id = Guid.NewGuid(),
                 Username = request.Username,
-                Email = request.Username,
+                Email = request.Email,
                 LockStatus = LockStatus.None,
-                Password = "AllPasswordsAreUnique",
+                Password = request.Password,
             };
 
             return await base.AddAsync(newUser);
@@ -234,7 +232,7 @@ public class UserRepository : Repository<User>, IUserRepository
     }
 
     public async Task<Response<bool>> UpdateAsync(
-        CreateUserRequest request,
+        UpdateUserRequest request,
         CancellationToken ctx = default
     )
     {
@@ -261,7 +259,7 @@ public class UserRepository : Repository<User>, IUserRepository
 
     public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
     {
-        var getResponse = await GetByIdAsync(id);
+        var getResponse = await GetByIdAsync(id, ctx);
         if (!getResponse.Success)
             return new Response<bool>(getResponse.ErrorCode, getResponse.Message);
 
@@ -312,19 +310,45 @@ public class UserRepository : Repository<User>, IUserRepository
         {
             var user = await dbContext
                 .Users.Where(u => u.Id == userId && !u.IsDeleted)
-                .Include(u => u.UserPermissions)
+                .Include(u => u.UserPermissions.Where(up => !up.IsDeleted))
                 .ThenInclude(up => up.Permission)
+                .Include(u => u.UserPermissions.Where(up => !up.IsDeleted))
+                .ThenInclude(up => up.Group)
+                .Include(u => u.Groups.Where(g => !g.IsDeleted))
+                .ThenInclude(g => g.Group)
+                .ThenInclude(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
+                .ThenInclude(gp => gp.Permission)
                 .FirstOrDefaultAsync(ctx);
 
             if (user == null)
                 return new Response<IEnumerable<Permission>>(ErrorCode.NotFound, "User not found");
 
-            var permissions = user
-                .UserPermissions.Where(up => !up.IsDeleted && !up.Permission.IsDeleted)
-                .Select(up => up.Permission)
-                .Distinct();
+            var directPermissions = user
+                .UserPermissions.Where(up =>
+                    !up.IsDeleted
+                    && !up.Permission.IsDeleted
+                    && up.Group != null
+                    && !up.Group.IsDeleted
+                )
+                .Select(up =>
+                {
+                    up.Permission.SourceGroupId = up.GroupId;
+                    return up.Permission;
+                });
 
-            return new Response<IEnumerable<Permission>>(permissions);
+            var groupPermissions = user
+                .Groups.Where(ug => !ug.IsDeleted && !ug.Group.IsDeleted)
+                .SelectMany(g =>
+                    g.Group.GroupPermissions.Where(gp => !gp.IsDeleted && !gp.Permission.IsDeleted)
+                        .Select(gp =>
+                        {
+                            gp.Permission.SourceGroupId = g.GroupId;
+                            return gp.Permission;
+                        })
+                );
+
+            var allPermissions = directPermissions.Union(groupPermissions);
+            return new Response<IEnumerable<Permission>>(allPermissions);
         }
         catch (Exception ex)
         {

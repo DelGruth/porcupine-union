@@ -17,7 +17,7 @@ public interface IUserRepository : IRepository<User>
     Task<Response<User>> GetUserGroupMembershipsAsync(Guid userId, CancellationToken ctx = default);
     Task<Response<User>> AddUserAsync(CreateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> AddToGroupAsync(Guid id, Guid groupId, CancellationToken ctx = default);
-    Task<Response<bool>> UpdateAsync(CreateUserRequest request, CancellationToken ctx = default);
+    Task<Response<bool>> UpdateAsync(UpdateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> RemoveFromGroupAsync(
         Guid id,
         Guid groupId,

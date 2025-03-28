@@ -47,9 +47,22 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
     }
 
     public async Task<Response<bool>> UpdateAsync(
-        CreateUserRequest request,
+        UpdateUserRequest request,
         CancellationToken ctx = default
-    ) => await userRepository.UpdateAsync(request, ctx);
+    )
+    {
+        try
+        {
+            return await userRepository.UpdateAsync(request, ctx);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Error updating user: {ex.Message}"
+            );
+        }
+    }
 
     public async Task<Response<bool>> AddUserToGroupAsync(
         Guid userId,
@@ -130,6 +143,24 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
             await InvalidateUserCache(userId);
         }
         return result;
+    }
+
+    public async Task<Response<IEnumerable<GroupSimpleDto>>> GetUserGroupsAsync(
+        Guid userId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await userRepository.GetUserGroupMembershipsAsync(userId, ctx);
+        if (!result.Success)
+        {
+            return new Response<IEnumerable<GroupSimpleDto>>(result.ErrorCode, result.Message);
+        }
+
+        var groups = result
+            .Data.Groups.Where(g => !g.IsDeleted)
+            .Select(g => new GroupSimpleDto(g.Group));
+
+        return new Response<IEnumerable<GroupSimpleDto>>(groups);
     }
 
     private async Task InvalidateUserCache(Guid userId)

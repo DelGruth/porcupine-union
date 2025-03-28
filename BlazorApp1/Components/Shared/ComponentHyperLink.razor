@@ -1,0 +1,46 @@
+@inject NavigationManager NavigationManager
+
+<a href="javascript:void(0)" @onclick="HandleClick" class="entity-link">@Text</a>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string ElementType { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public Guid ElementId { get; set; }
+
+    private void HandleClick()
+    {
+        var baseUrl = ElementType.ToLower() switch
+        {
+            "user" => "/users",
+            "group" => "/groups",
+            "permission" => "/permissions",
+            _ => throw new ArgumentException("Invalid entity type")
+        };
+
+        var queryParam = ElementType.ToLower() switch
+        {
+            "user" => "OpenUser",
+            "group" => "OpenGroup",
+            "permission" => "OpenPermission",
+            _ => throw new ArgumentException("Invalid entity type")
+        };
+
+        NavigationManager.NavigateTo($"{baseUrl}?{queryParam}={ElementId}");
+    }
+}
+
+<style>
+    .entity-link {
+        color: var(--bs-link-color);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    .entity-link:hover {
+        color: var(--bs-link-hover-color);
+    }
+</style>

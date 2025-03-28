@@ -11,6 +11,7 @@ public class PermissionDto
     public bool WriteOnly { get; set; }
     public IEnumerable<Guid> GroupIds { get; set; } = new List<Guid>();
     public IEnumerable<Guid> UserIds { get; set; } = new List<Guid>();
+    public Guid? SourceGroupId { get; set; }
 
     public PermissionDto() { }
 
@@ -23,5 +24,6 @@ public class PermissionDto
         WriteOnly = permission.WriteOnly;
         GroupIds = permission.GroupPermissions?.Select(gp => gp.GroupId) ?? new List<Guid>();
         UserIds = permission.UserPermissions?.Select(up => up.UserId) ?? new List<Guid>();
+        SourceGroupId = permission.SourceGroupId;
     }
 }

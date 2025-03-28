@@ -358,4 +358,42 @@ public class GroupRepository(UserAccessDbContext dbContext)
             );
         }
     }
+
+    public async Task<Response<IEnumerable<Permission>>> GetGroupPermissionsAsync(
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var group = await dbContext
+                .Groups.Where(g => g.Id == groupId && !g.IsDeleted)
+                .Include(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
+                .ThenInclude(gp => gp.Permission)
+                .FirstOrDefaultAsync(ctx);
+
+            if (group == null)
+                return new Response<IEnumerable<Permission>>(
+                    ErrorCode.NotFound,
+                    $"Group with ID {groupId} not found"
+                );
+
+            var permissions = group
+                .GroupPermissions.Where(gp => !gp.IsDeleted && !gp.Permission.IsDeleted)
+                .Select(gp =>
+                {
+                    gp.Permission.SourceGroupId = groupId;
+                    return gp.Permission;
+                });
+
+            return new Response<IEnumerable<Permission>>(permissions);
+        }
+        catch (Exception ex)
+        {
+            return new Response<IEnumerable<Permission>>(
+                ErrorCode.UnexpectedError,
+                $"Error retrieving group permissions: {ex.Message}"
+            );
+        }
+    }
 }
