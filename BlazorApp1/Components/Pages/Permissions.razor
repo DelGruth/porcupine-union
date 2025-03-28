@@ -16,7 +16,7 @@
         </button>
     </div>
 
-@if (!_permissions.Any())
+    @if (!_permissions.Any())
     {
         <p>No permissions found.</p>
     }
@@ -39,11 +39,19 @@
                         <tr>
                             <td>@permission.Name</td>
                             <td>@permission.Description</td>
-                            <td>@permission.ReadOnly</td>
-                            <td>@permission.WriteOnly</td>
                             <td>
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeletePermission(permission.Id)">
-                                    Delete
+                                <span class="badge @(permission.ReadOnly ? "bg-success" : "bg-secondary")">
+                                    @(permission.ReadOnly ? "Yes" : "No")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge @(permission.WriteOnly ? "bg-success" : "bg-secondary")">
+                                    @(permission.WriteOnly ? "Yes" : "No")
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeletePermissionWithConfirm(permission)">
+                                    <i class="fas fa-trash"></i> Delete
                                 </button>
                             </td>
                         </tr>
@@ -55,8 +63,9 @@
 
     @if (_errorMessage != null)
     {
-        <div class="alert alert-danger" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
             @_errorMessage
+            <button type="button" class="btn-close" @onclick="() => _errorMessage = null"></button>
         </div>
     }
 </div>
@@ -73,11 +82,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="permissionName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="permissionName" @bind="_name">
+                        <input type="text" class="form-control" id="permissionName" @bind="_name" required>
                     </div>
                     <div class="mb-3">
                         <label for="permissionDescription" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="permissionDescription" @bind="_description">
+                        <input type="text" class="form-control" id="permissionDescription" @bind="_description" required>
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="readOnly" @bind="_readOnly">
@@ -90,7 +99,30 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="HideCreateDialog">Cancel</button>
-                    <button type="button" class="btn btn-primary" @onclick="CreatePermission">Create</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreatePermission" disabled="@(!IsValidForm())">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (_showDeleteConfirmation)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="() => _showDeleteConfirmation = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the permission "@(_permissionToDelete?.Name)"?</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showDeleteConfirmation = false">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeletePermission">Delete</button>
                 </div>
             </div>
         </div>
@@ -101,8 +133,9 @@
 @code {
     private IEnumerable<PermissionDto> _permissions = Array.Empty<PermissionDto>();
     private bool _showCreateDialog;
+    private bool _showDeleteConfirmation;
     private string? _errorMessage;
-    
+    private PermissionDto? _permissionToDelete;
     private string _name = string.Empty;
     private string _description = string.Empty;
     private bool _readOnly;
@@ -118,12 +151,12 @@
         var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>("permissions");
         if (response.Success)
         {
-            _permissions = response.Data;
+            _permissions = response.Data ?? Array.Empty<PermissionDto>();
             _errorMessage = null;
         }
         else
         {
-            _errorMessage = response.Message;
+            _errorMessage = response.Message ?? "Failed to load permissions";
         }
     }
 
@@ -143,8 +176,15 @@
         _errorMessage = null;
     }
 
+    private bool IsValidForm()
+    {
+        return !string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_description);
+    }
+
     private async Task CreatePermission()
     {
+        if (!IsValidForm()) return;
+
         var request = new CreatePermissionRequest
         {
             Name = _name,
@@ -161,20 +201,30 @@
         }
         else
         {
-            _errorMessage = response.Message;
+            _errorMessage = response.Message ?? "Failed to create permission";
         }
     }
 
-    private async Task DeletePermission(Guid id)
+    private void DeletePermissionWithConfirm(PermissionDto permission)
     {
-        var response = await ApiClient.DeleteAsync<bool>($"permissions/{id}");
+        _permissionToDelete = permission;
+        _showDeleteConfirmation = true;
+    }
+
+    private async Task ConfirmDeletePermission()
+    {
+        if (_permissionToDelete == null) return;
+
+        var response = await ApiClient.DeleteAsync<bool>($"permissions/{_permissionToDelete.Id}");
         if (response.Success)
         {
             await LoadPermissions();
+            _showDeleteConfirmation = false;
+            _permissionToDelete = null;
         }
         else
         {
-            _errorMessage = response.Message;
+            _errorMessage = response.Message ?? "Failed to delete permission";
         }
     }
 }

@@ -13,8 +13,6 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
     : BaseService<User, UserDto>(cache, userRepository),
         IUserService
 {
-    private readonly IUserRepository _userRepository = userRepository;
-
     protected override UserDto MapToDto(User entity) => new(entity);
 
     public async ValueTask<Response<IEnumerable<UserDto>>> GetAllUsersAsync(
@@ -27,7 +25,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
             cacheKey,
             async ctx =>
             {
-                var dataRequest = await _userRepository.GetAllAsync(lastEntry, 100, ctx);
+                var dataRequest = await userRepository.GetAllAsync(lastEntry, 100, ctx);
                 return !dataRequest.Success
                     ? new Response<IEnumerable<UserDto>>(ErrorCode.UnexpectedError)
                     : new Response<IEnumerable<UserDto>>(dataRequest.Data?.Select(MapToDto) ?? []);
@@ -42,7 +40,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.AddUserAsync(request, ctx);
+        var result = await userRepository.AddUserAsync(request, ctx);
         return !result.Success
             ? new Response<UserDto>(result.ErrorCode)
             : new Response<UserDto>(MapToDto(result.Data));
@@ -51,7 +49,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
     public async Task<Response<bool>> UpdateAsync(
         CreateUserRequest request,
         CancellationToken ctx = default
-    ) => await _userRepository.UpdateAsync(request, ctx);
+    ) => await userRepository.UpdateAsync(request, ctx);
 
     public async Task<Response<bool>> AddUserToGroupAsync(
         Guid userId,
@@ -59,7 +57,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.AddToGroupAsync(userId, groupId, ctx);
+        var result = await userRepository.AddToGroupAsync(userId, groupId, ctx);
         if (result.Success)
         {
             await InvalidateUserCache(userId);
@@ -73,7 +71,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.RemoveFromGroupAsync(userId, groupId, ctx);
+        var result = await userRepository.RemoveFromGroupAsync(userId, groupId, ctx);
         if (result.Success)
         {
             await InvalidateUserCache(userId);
@@ -86,7 +84,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.GetUserPermissionsAsync(userId, ctx);
+        var result = await userRepository.GetUserPermissionsAsync(userId, ctx);
         return !result.Success
             ? new Response<IEnumerable<PermissionDto>>(result.ErrorCode, result.Message)
             : new Response<IEnumerable<PermissionDto>>(
@@ -101,7 +99,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.AddPermissionToUserAsync(
+        var result = await userRepository.AddPermissionToUserAsync(
             userId,
             permissionId,
             groupId,
@@ -121,7 +119,7 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         CancellationToken ctx = default
     )
     {
-        var result = await _userRepository.RemovePermissionFromUserAsync(
+        var result = await userRepository.RemovePermissionFromUserAsync(
             userId,
             permissionId,
             groupId,

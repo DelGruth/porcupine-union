@@ -1,7 +1,97 @@
 ﻿@page "/"
+@using UserAccessSystem.Contract.Clients
+@using UserAccessSystem.Contract.Dtos
+@using UserAccessSystem.Contract.Responses
+@using UserAccessSystem.Contract
+@inject ApiClient ApiClient
 
-<PageTitle>Home</PageTitle>
+<PageTitle>User Access System</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>User Access System</h1>
 
-Welcome to your new app.
+<div class="navigation-links">
+    <NavLink class="nav-link" href="groups">
+        Manage Groups
+    </NavLink>
+    <NavLink class="nav-link" href="users">
+        Manage Users
+    </NavLink>
+</div>
+
+<div class="dashboard-summary">
+    @if (groupCount != null)
+    {
+        <div class="stat-card">
+            <h3>Total Groups</h3>
+            <p>@groupCount</p>
+        </div>
+    }
+    @if (userCount != null)
+    {
+        <div class="stat-card">
+            <h3>Total Users</h3>
+            <p>@userCount</p>
+        </div>
+    }
+</div>
+
+@code {
+    private int? groupCount;
+    private int? userCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var groupsResponse = await ApiClient.GetAsync<GroupListResponse>("groups");
+        if (groupsResponse.Success)
+        {
+            groupCount = groupsResponse.Data.Groups.Count();
+        }
+
+        var usersResponse = await ApiClient.GetAsync<IEnumerable<UserDto>>("users");
+        if (usersResponse.Success)
+        {
+            userCount = usersResponse.Data.Count();
+        }
+    }
+}
+
+<style>
+    .navigation-links {
+        margin: 2rem 0;
+    }
+
+    .nav-link {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        margin-right: 1rem;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .dashboard-summary {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-width: 150px;
+    }
+
+    .stat-card h3 {
+        margin: 0;
+        font-size: 1rem;
+        color: #666;
+    }
+
+    .stat-card p {
+        margin: 0.5rem 0 0 0;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
