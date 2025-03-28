@@ -24,3 +24,6 @@ Ui: http://localhost:5226/<br/>
 
 Entry point Backend -> UAS.Internal.Api<br/>
 Entry point Ui -> UAS.External.Web
+
+Main assumption made:
+Back office tool for internal employees 
