@@ -5,12 +5,14 @@ namespace UserAccessSystem.Contract.Dtos;
 public class PermissionDto
 {
     public Guid Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public bool ReadOnly { get; set; }
     public bool WriteOnly { get; set; }
-    public IEnumerable<Guid> GroupIds { get; set; }
-    public IEnumerable<Guid> UserIds { get; set; }
+    public IEnumerable<Guid> GroupIds { get; set; } = new List<Guid>();
+    public IEnumerable<Guid> UserIds { get; set; } = new List<Guid>();
+
+    public PermissionDto() { }
 
     public PermissionDto(Permission permission)
     {

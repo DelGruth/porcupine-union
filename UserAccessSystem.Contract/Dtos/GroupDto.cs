@@ -5,11 +5,13 @@ namespace UserAccessSystem.Contract.Dtos;
 public class GroupDto
 {
     public Guid Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int UserCount { get; set; }
-    public IEnumerable<Guid> UserIds { get; set; }
-    public IEnumerable<Guid> PermissionIds { get; set; }
+    public IEnumerable<Guid> UserIds { get; set; } = new List<Guid>();
+    public IEnumerable<Guid> PermissionIds { get; set; } = new List<Guid>();
+
+    public GroupDto() { }
 
     public GroupDto(Group group)
     {

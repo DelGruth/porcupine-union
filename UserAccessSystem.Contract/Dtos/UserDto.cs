@@ -5,10 +5,12 @@ namespace UserAccessSystem.Contract.Dtos;
 public class UserDto
 {
     public Guid Id { get; set; }
-    public string Username { get; set; }
-    public string Email { get; set; }
-    public IEnumerable<Guid> GroupIds { get; set; }
-    public IEnumerable<Guid> PermissionIds { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public IEnumerable<Guid> GroupIds { get; set; } = new List<Guid>();
+    public IEnumerable<Guid> PermissionIds { get; set; } = new List<Guid>();
+
+    public UserDto() { }
 
     public UserDto(User user)
     {
