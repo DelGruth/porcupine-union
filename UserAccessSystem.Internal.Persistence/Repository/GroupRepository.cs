@@ -13,14 +13,20 @@ public class GroupRepository(UserAccessDbContext dbContext)
     : Repository<Group>(dbContext),
         IGroupRepository
 {
+    private readonly UserAccessDbContext dbContext = dbContext;
+
     public async Task<Response<IEnumerable<Group>>> GetAllAsync(CancellationToken ctx = default)
     {
         try
         {
             var groups = await dbContext
-                .Groups.Where(g => !g.IsDeleted)
-                .Include(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
+                .Groups.Include(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
                 .ThenInclude(gp => gp.Permission)
+                .Include(g => g.Users.Where(u => !u.IsDeleted))
+                .ThenInclude(u => u.User)
+                .Include(g => g.MemberPermissions.Where(mp => !mp.IsDeleted))
+                .ThenInclude(mp => mp.Permission)
+                .Where(g => !g.IsDeleted)
                 .OrderBy(g => g.Name)
                 .ToListAsync(ctx);
 

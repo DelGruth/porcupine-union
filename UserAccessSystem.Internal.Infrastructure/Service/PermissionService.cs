@@ -2,56 +2,54 @@ using Microsoft.Extensions.Caching.Hybrid;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Requests;
+using UserAccessSystem.Domain.Permissions;
 using UserAccessSystem.Internal.Application.Infrastructure;
 using UserAccessSystem.Internal.Application.Peristence;
 
 namespace UserAccessSystem.Internal.Infrastructure.Service;
 
 public class PermissionService(HybridCache cache, IPermissionRepository permissionRepository)
-    : IPermissionService
+    : BaseService<Permission, PermissionDto>(cache, permissionRepository),
+        IPermissionService
 {
+    protected override PermissionDto MapToDto(Permission entity) => new(entity);
+
     public async ValueTask<Response<IEnumerable<PermissionDto>>> GetAllPermissionsAsync(
         CancellationToken ctx = default
-    )
-    {
-        const string cacheKey = $"GetAllPermissions";
-        return await cache.GetOrCreateAsync<Response<IEnumerable<PermissionDto>>>(
-            cacheKey,
-            async ctx =>
-            {
-                var dataRequest = await permissionRepository.GetAllAsync(ctx);
+    ) => await GetAllAsync(ctx);
 
-                if (!dataRequest.Success)
-                    return new Response<IEnumerable<PermissionDto>>(ErrorCode.UnexpectedError);
-
-                return new Response<IEnumerable<PermissionDto>>(
-                    dataRequest.Data?.Select(x => new PermissionDto(x)) ?? []
-                );
-            },
-            options: new HybridCacheEntryOptions() { Expiration = TimeSpan.FromMilliseconds(150) },
-            cancellationToken: ctx
-        );
-    }
-
-    public async Task<Response<UserDto>> CreateAsync(
+    public async Task<Response<PermissionDto>> CreateAsync(
         CreatePermissionRequest request,
         CancellationToken ctx = default
     )
     {
-        throw new NotImplementedException();
+        var permission = new Permission
+        {
+            Name = request.Name,
+            Description = request.Description,
+            ReadOnly = request.ReadOnly,
+            WriteOnly = request.WriteOnly,
+        };
+
+        var result = await permissionRepository.AddAsync(permission, ctx);
+        return !result.Success
+            ? new Response<PermissionDto>(result.ErrorCode, result.Message)
+            : new Response<PermissionDto>(MapToDto(result.Data));
     }
 
-    public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
+    public override async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
     {
-        throw new NotImplementedException();
+        var result = await base.DeleteAsync(id, ctx);
+        if (result.Success)
+        {
+            await InvalidatePermissionCache(id);
+        }
+        return result;
     }
 
-    public async Task<Response<bool>> RemoveFromGroup(
-        Guid id,
-        Guid groupId,
-        CancellationToken ctx = default
-    )
+    private async Task InvalidatePermissionCache(Guid id)
     {
-        throw new NotImplementedException();
+        var cacheKey = $"GetById_Permission_{id}";
+        await cache.RemoveAsync(cacheKey);
     }
 }

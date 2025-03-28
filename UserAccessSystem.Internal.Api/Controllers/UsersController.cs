@@ -3,32 +3,41 @@ using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Requests;
-using UserAccessSystem.Contract.Responses;
+using UserAccessSystem.Internal.Api.Middleware;
 using UserAccessSystem.Internal.Application.Infrastructure;
 
 namespace UserAccessSystem.Internal.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[AuthAttribute("SU", true, true)]
 public class UsersController(IUserService userService) : ControllerBase
 {
-    [HttpGet()]
-    [Route("{id:guid}")]
-    [AllowAnonymous]
-    public Task<Response<GetUserResponse>> Get([FromRoute] Guid id)
-    {
-        return Task.FromResult(
-            new Response<GetUserResponse>(new GetUserResponse() { Name = id.ToString() })
-        );
-    }
+    [HttpGet]
+    [AuthAttribute("SU", true, false)]
+    public async ValueTask<Response<IEnumerable<UserDto>>> GetAll(
+        [FromQuery] DateTime? lastEntry
+    ) => await userService.GetAllUsersAsync(lastEntry);
 
-    [HttpGet()]
-    [AllowAnonymous]
-    public async ValueTask<Response<IEnumerable<UserDto>>> Get([FromQuery] DateTime? lastEntry) =>
-        await userService.GetAllUsersAsync(lastEntry);
-
-    [HttpPost()]
-    [AllowAnonymous]
-    public async ValueTask<Response<UserDto>> Post([FromBody] CreateUserRequest request) =>
+    [HttpPost]
+    public async Task<Response<UserDto>> Create([FromBody] CreateUserRequest request) =>
         await userService.CreateAsync(request);
+
+    [HttpPut]
+    public async Task<Response<bool>> Update([FromBody] CreateUserRequest request) =>
+        await userService.UpdateAsync(request);
+
+    [HttpDelete("{id:guid}")]
+    public async Task<Response<bool>> Delete([FromRoute] Guid id) =>
+        await userService.DeleteAsync(id);
+
+    [HttpPost("{id:guid}/groups/{groupId:guid}")]
+    public async Task<Response<bool>> AddToGroup([FromRoute] Guid id, [FromRoute] Guid groupId) =>
+        await userService.AddUserToGroupAsync(id, groupId);
+
+    [HttpDelete("{id:guid}/groups/{groupId:guid}")]
+    public async Task<Response<bool>> RemoveFromGroup(
+        [FromRoute] Guid id,
+        [FromRoute] Guid groupId
+    ) => await userService.RemoveUserFromGroupAsync(id, groupId);
 }

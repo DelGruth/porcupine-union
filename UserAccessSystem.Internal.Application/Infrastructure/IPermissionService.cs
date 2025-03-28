@@ -9,7 +9,7 @@ public interface IPermissionService
     ValueTask<Response<IEnumerable<PermissionDto>>> GetAllPermissionsAsync(
         CancellationToken ctx = default
     );
-    Task<Response<UserDto>> CreateAsync(
+    Task<Response<PermissionDto>> CreateAsync(
         CreatePermissionRequest request,
         CancellationToken ctx = default
     );

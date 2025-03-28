@@ -4,7 +4,7 @@ using UserAccessSystem.Domain.User;
 
 namespace UserAccessSystem.Internal.Application.Peristence;
 
-public interface IUserRepository
+public interface IUserRepository : IRepository<User>
 {
     Task<Response<IEnumerable<User>>> GetAllAsync(
         DateTime? lastEntry,
@@ -17,7 +17,6 @@ public interface IUserRepository
     Task<Response<User>> AddUserAsync(CreateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> AddToGroupAsync(Guid id, Guid groupId, CancellationToken ctx = default);
     Task<Response<bool>> UpdateAsync(CreateUserRequest request, CancellationToken ctx = default);
-    Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default);
     Task<Response<bool>> RemoveFromGroupAsync(
         Guid id,
         Guid groupId,

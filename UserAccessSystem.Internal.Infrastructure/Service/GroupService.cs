@@ -1,42 +1,81 @@
 using Microsoft.Extensions.Caching.Hybrid;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Dtos;
+using UserAccessSystem.Contract.Requests;
+using UserAccessSystem.Contract.Responses;
+using UserAccessSystem.Domain.Group;
 using UserAccessSystem.Internal.Application.Infrastructure;
 using UserAccessSystem.Internal.Application.Peristence;
 
 namespace UserAccessSystem.Internal.Infrastructure.Service;
 
-public class GroupService(HybridCache cache, IGroupRepository groupRepository) : IGroupService
+public class GroupService(HybridCache cache, IGroupRepository groupRepository)
+    : BaseService<Group, GroupDto>(cache, groupRepository),
+        IGroupService
 {
-    public async Task<Response<IEnumerable<GroupDto>>> GetAllGroupsAsync(
+    protected override GroupDto MapToDto(Group entity) => new(entity);
+
+    public async Task<Response<GroupListResponse>> GetAllGroupsAsync(
         CancellationToken ctx = default
     )
     {
-        const string cacheKey = "GetAllGroups";
-        return await cache.GetOrCreateAsync<Response<IEnumerable<GroupDto>>>(
-            cacheKey,
-            async ctx =>
-            {
-                var dataRequest = await groupRepository.GetAllAsync(ctx);
-
-                if (!dataRequest.Success)
-                    return new Response<IEnumerable<GroupDto>>(ErrorCode.UnexpectedError);
-
-                return new Response<IEnumerable<GroupDto>>(
-                    dataRequest.Data?.Select(x => new GroupDto(x)) ?? []
-                );
-            },
-            options: new HybridCacheEntryOptions() { Expiration = TimeSpan.FromMilliseconds(150) },
-            cancellationToken: ctx
-        );
+        var result = await groupRepository.GetAllAsync(ctx);
+        return !result.Success
+            ? new Response<GroupListResponse>(result.ErrorCode, result.Message)
+            : new Response<GroupListResponse>(
+                new GroupListResponse { Groups = result.Data.Select(MapToDto) }
+            );
     }
 
-    public async Task<Response<GroupDto>> GetByIdAsync(Guid id, CancellationToken ctx = default)
+    public override async Task<Response<GroupDto>> GetByIdAsync(
+        Guid id,
+        CancellationToken ctx = default
+    )
     {
         var result = await groupRepository.GetByIdAsync(id, ctx);
         return !result.Success
-            ? new Response<GroupDto>(result.ErrorCode)
-            : new Response<GroupDto>(new GroupDto(result.Data));
+            ? new Response<GroupDto>(result.ErrorCode, result.Message)
+            : new Response<GroupDto>(MapToDto(result.Data));
+    }
+
+    public async Task<Response<GroupResponse>> GetGroupByIdAsync(
+        Guid id,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await GetByIdAsync(id, ctx);
+        return !result.Success
+            ? new Response<GroupResponse>(result.ErrorCode, result.Message)
+            : new Response<GroupResponse>(new GroupResponse { Group = result.Data });
+    }
+
+    public async Task<Response<GroupResponse>> CreateAsync(
+        CreateGroupRequest request,
+        CancellationToken ctx = default
+    )
+    {
+        var group = new Group { Name = request.Name, Description = request.Description };
+
+        var result = await groupRepository.AddAsync(group, ctx);
+        return !result.Success
+            ? new Response<GroupResponse>(result.ErrorCode, result.Message)
+            : new Response<GroupResponse>(new GroupResponse { Group = MapToDto(result.Data) });
+    }
+
+    public async Task<Response<bool>> UpdateAsync(
+        UpdateGroupRequest request,
+        CancellationToken ctx = default
+    )
+    {
+        var getResult = await groupRepository.GetByIdAsync(request.Id, ctx);
+        if (!getResult.Success)
+            return new Response<bool>(getResult.ErrorCode, getResult.Message);
+
+        var group = getResult.Data;
+        group.Name = request.Name;
+        group.Description = request.Description;
+
+        return await groupRepository.UpdateAsync(group, ctx);
     }
 
     public async Task<Response<bool>> AddUserToGroupAsync(
@@ -81,7 +120,7 @@ public class GroupService(HybridCache cache, IGroupRepository groupRepository) :
         return result;
     }
 
-    public async ValueTask<Response<bool>> RemovePermissionFromGroupAsync(
+    public async Task<Response<bool>> RemovePermissionFromGroupAsync(
         Guid permissionId,
         Guid groupId,
         CancellationToken ctx = default
@@ -99,13 +138,23 @@ public class GroupService(HybridCache cache, IGroupRepository groupRepository) :
         return result;
     }
 
-    private ValueTask InvalidateGroupCache(Guid groupId)
+    public async Task<Response<GroupUserDistributionResponse>> GetUsersPerGroupCountAsync(
+        CancellationToken ctx = default
+    )
     {
-        const string allGroupsCacheKey = "GetAllGroups";
-        var groupCacheKey = $"Group_{groupId}";
+        var result = await groupRepository.GetAllAsync(ctx);
+        if (!result.Success)
+            return new Response<GroupUserDistributionResponse>(result.ErrorCode, result.Message);
 
-        _ = cache.RemoveAsync(allGroupsCacheKey);
-        _ = cache.RemoveAsync(groupCacheKey);
-        return ValueTask.CompletedTask;
+        var distribution = result.Data.ToDictionary(g => g.Name, g => g.Users.Count());
+        return new Response<GroupUserDistributionResponse>(
+            new GroupUserDistributionResponse { Distribution = distribution }
+        );
+    }
+
+    private async Task InvalidateGroupCache(Guid groupId)
+    {
+        var cacheKey = $"GetById_Group_{groupId}";
+        await cache.RemoveAsync(cacheKey);
     }
 }

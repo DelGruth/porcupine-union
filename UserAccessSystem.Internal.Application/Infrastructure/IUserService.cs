@@ -10,8 +10,17 @@ public interface IUserService
         DateTime? lastEntry,
         CancellationToken ctx = default
     );
-
     Task<Response<UserDto>> CreateAsync(CreateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> UpdateAsync(CreateUserRequest request, CancellationToken ctx = default);
     Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default);
+    Task<Response<bool>> AddUserToGroupAsync(
+        Guid userId,
+        Guid groupId,
+        CancellationToken ctx = default
+    );
+    Task<Response<bool>> RemoveUserFromGroupAsync(
+        Guid userId,
+        Guid groupId,
+        CancellationToken ctx = default
+    );
 }
