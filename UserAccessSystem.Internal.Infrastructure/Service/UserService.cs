@@ -46,12 +46,6 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
             : new Response<UserDto>(new UserDto(dbRequest.Data));
     }
 
-    public async Task<Response<bool>> AddToGroupAsync(
-        Guid id,
-        Guid groupId,
-        CancellationToken ctx = default
-    ) => await userRepository.AddToGroupAsync(id, groupId, ctx);
-
     public async Task<Response<bool>> UpdateAsync(
         CreateUserRequest request,
         CancellationToken ctx = default
@@ -59,10 +53,4 @@ public class UserService(HybridCache cache, IUserRepository userRepository) : IU
 
     public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default) =>
         await userRepository.DeleteAsync(id, ctx);
-
-    public async Task<Response<bool>> RemoveFromGroupAsync(
-        Guid id,
-        Guid groupId,
-        CancellationToken ctx = default
-    ) => await userRepository.RemoveFromGroupAsync(id, groupId, ctx);
 }
