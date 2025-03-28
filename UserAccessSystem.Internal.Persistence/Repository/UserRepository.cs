@@ -45,7 +45,6 @@ public class UserRepository : Repository<User?>, IUserRepository
         }
         catch (Exception ex)
         {
-            //time based vuln
             return new Response<IEnumerable<User>>(
                 ErrorCode.UnexpectedError,
                 $"Error retrieving users: {ex.Message}"
@@ -60,11 +59,11 @@ public class UserRepository : Repository<User?>, IUserRepository
     {
         try
         {
-            var user = await dbContext
-                .Users.Where(u => u.Username == username)
-                .Where(u => !u.IsDeleted)
-                .FirstOrDefaultAsync(ctx);
+            var response = await FindAsync(u => u.Username == username);
+            if (!response.Success)
+                return new Response<User>(response.ErrorCode, response.Message);
 
+            var user = response.Data.FirstOrDefault();
             return user == null
                 ? new Response<User>(
                     ErrorCode.UserNotFound,
@@ -232,21 +231,11 @@ public class UserRepository : Repository<User?>, IUserRepository
 
     public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
     {
-        try
-        {
-            var user = await dbContext.Users.FindAsync(id, ctx);
-            user!.IsDeleted = true;
+        var getResponse = await GetByIdAsync(id);
+        if (!getResponse.Success)
+            return new Response<bool>(getResponse.ErrorCode, getResponse.Message);
 
-            dbContext.Entry(user).State = EntityState.Modified;
-            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
-        }
-        catch (Exception ex)
-        {
-            return new Response<bool>(
-                ErrorCode.UnexpectedError,
-                $"Error deleting user: {ex.Message}"
-            );
-        }
+        return await DeleteAsync(getResponse.Data);
     }
 
     public async Task<Response<bool>> RemoveFromGroupAsync(
