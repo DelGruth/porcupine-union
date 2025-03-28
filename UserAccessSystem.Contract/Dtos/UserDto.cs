@@ -10,6 +10,6 @@ public class UserDto
 
     public UserDto(User user)
     {
-        User = user;
+        this.User = user;
     }
 }
