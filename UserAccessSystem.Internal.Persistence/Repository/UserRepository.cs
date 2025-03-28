@@ -64,6 +64,7 @@ public class UserRepository : Repository<User?>, IUserRepository
                 return new Response<User>(response.ErrorCode, response.Message);
 
             var user = response.Data.FirstOrDefault();
+
             return user == null
                 ? new Response<User>(
                     ErrorCode.UserNotFound,
