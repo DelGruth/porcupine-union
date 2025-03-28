@@ -8,11 +8,15 @@ using UserAccessSystem.Internal.Persistence.DbContext;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
 
-public class UserRepository(UserAccessDbContext dbContext)
-    : Repository<User?>(dbContext),
-        IUserRepository
+public class UserRepository : Repository<User?>, IUserRepository
 {
-    private UserAccessDbContext dbContext { get; } = dbContext;
+    private UserAccessDbContext dbContext { get; }
+
+    public UserRepository(UserAccessDbContext dbContext)
+        : base(dbContext)
+    {
+        this.dbContext = dbContext;
+    }
 
     public async Task<Response<IEnumerable<User>>> GetAllAsync(
         DateTime? lastEntry,
@@ -23,8 +27,8 @@ public class UserRepository(UserAccessDbContext dbContext)
         try
         {
             IQueryable<User> cursorQuery = dbContext
-                .Users.Where(u => !u.IsDeleted)
-                .OrderBy(u => u.Id);
+                .Users.Include(u => u.Groups.Where(g => !g.IsDeleted))
+                .Include(u => u.UserPermissions.Where(p => !p.IsDeleted));
 
             if (lastEntry.HasValue)
             {
@@ -32,6 +36,7 @@ public class UserRepository(UserAccessDbContext dbContext)
             }
 
             var users = await cursorQuery
+                .Where(u => !u.IsDeleted)
                 .OrderBy(u => u.CreatedAtDateTime)
                 .ThenBy(u => u.Id)
                 .Take(size)
@@ -60,7 +65,6 @@ public class UserRepository(UserAccessDbContext dbContext)
                 return new Response<User>(response.ErrorCode, response.Message);
 
             var user = response.Data.FirstOrDefault();
-
             return user == null
                 ? new Response<User>(
                     ErrorCode.UserNotFound,
@@ -153,19 +157,13 @@ public class UserRepository(UserAccessDbContext dbContext)
             var newUser = new User
             {
                 Id = Guid.NewGuid(),
-                CreatedAtDateTime = DateTime.UtcNow,
-                IsDeleted = false,
                 Username = request.Username,
                 Email = request.Username,
                 LockStatus = LockStatus.None,
                 Password = "AllPasswordsAreUnique",
             };
 
-            dbContext.Users.Add(newUser);
-
-            await dbContext.SaveChangesAsync(ctx);
-
-            return new Response<User>(newUser);
+            return await base.AddAsync(newUser);
         }
         catch (Exception ex)
         {
@@ -205,17 +203,15 @@ public class UserRepository(UserAccessDbContext dbContext)
     {
         try
         {
-            var userRequest = await GetByUsernameAsync(request.Username, ctx);
+            var userResponse = await GetByUsernameAsync(request.Username, ctx);
+            if (!userResponse.Success)
+                return new Response<bool>(userResponse.ErrorCode, userResponse.Message);
 
-            if (!userRequest.Success)
-                throw new Exception("User not found during update user request");
-
-            var user = userRequest.Data;
+            var user = userResponse.Data;
             user.Email = request.Email;
             user.Username = request.Username;
 
-            dbContext.Entry(user).State = EntityState.Modified;
-            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
+            return await base.UpdateAsync(user);
         }
         catch (Exception ex)
         {

@@ -13,7 +13,6 @@ builder
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.IncludeFields = true;
     });
-;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -26,8 +25,6 @@ app.BuildPersistence();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-
-app.UseAuthorization();
 
 app.MapControllers();
 

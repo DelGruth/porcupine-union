@@ -13,7 +13,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
     private readonly UserAccessDbContext _dbContext =
         dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
-    public async Task<Response<T>> AddAsync(T entity)
+    public async Task<Response<T>> AddAsync(T entity, CancellationToken ctx = default)
     {
         try
         {
@@ -22,8 +22,8 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
             entity.Version = 1;
             entity.IsDeleted = false;
 
-            await _dbContext.Set<T>().AddAsync(entity);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.Set<T>().AddAsync(entity, ctx);
+            await _dbContext.SaveChangesAsync(ctx);
 
             return new Response<T>(entity);
         }
@@ -36,7 +36,10 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<Response<IEnumerable<T>>> AddRangeAsync(IEnumerable<T> entities)
+    public async Task<Response<IEnumerable<T>>> AddRangeAsync(
+        IEnumerable<T> entities,
+        CancellationToken ctx = default
+    )
     {
         try
         {
@@ -50,8 +53,8 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
                 entity.IsDeleted = false;
             }
 
-            await _dbContext.Set<T>().AddRangeAsync(entities);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.Set<T>().AddRangeAsync(entities, ctx);
+            await _dbContext.SaveChangesAsync(ctx);
 
             return new Response<IEnumerable<T>>(entities);
         }
@@ -64,12 +67,15 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
+    public async Task<int> CountAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken ctx = default
+    )
     {
-        return await _dbContext.Set<T>().Where(predicate).Where(e => !e.IsDeleted).CountAsync();
+        return await _dbContext.Set<T>().Where(predicate).Where(e => !e.IsDeleted).CountAsync(ctx);
     }
 
-    public async Task<Response<bool>> DeleteAsync(T entity)
+    public async Task<Response<bool>> DeleteAsync(T entity, CancellationToken ctx = default)
     {
         try
         {
@@ -78,7 +84,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
             entity.Version++;
 
             _dbContext.Set<T>().Update(entity);
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ctx);
 
             return new Response<bool>(true);
         }
@@ -91,7 +97,10 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<Response<IReadOnlyList<T>>> FindAsync(Expression<Func<T, bool>> predicate)
+    public async Task<Response<IReadOnlyList<T>>> FindAsync(
+        Expression<Func<T, bool>> predicate,
+        CancellationToken ctx = default
+    )
     {
         try
         {
@@ -99,7 +108,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
                 .Set<T>()
                 .Where(predicate)
                 .Where(e => !e.IsDeleted)
-                .ToListAsync();
+                .ToListAsync(ctx);
 
             return new Response<IReadOnlyList<T>>(entities);
         }
@@ -112,11 +121,11 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<Response<IEnumerable<T>>> GetAllAsync()
+    public async Task<Response<IEnumerable<T>>> GetAllAsync(CancellationToken ctx = default)
     {
         try
         {
-            var entities = await _dbContext.Set<T>().Where(e => !e.IsDeleted).ToListAsync();
+            var entities = await _dbContext.Set<T>().Where(e => !e.IsDeleted).ToListAsync(ctx);
 
             return new Response<IEnumerable<T>>(entities);
         }
@@ -129,7 +138,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<Response<T>> GetByIdAsync(Guid id)
+    public async Task<Response<T>> GetByIdAsync(Guid id, CancellationToken ctx = default)
     {
         try
         {
@@ -137,7 +146,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
                 .Set<T>()
                 .Where(e => e.Id == id)
                 .Where(e => !e.IsDeleted)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ctx);
 
             return entity == null
                 ? new Response<T>(ErrorCode.NotFound, $"Entity with ID {id} not found")
@@ -152,7 +161,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
         }
     }
 
-    public async Task<Response<bool>> UpdateAsync(T entity)
+    public async Task<Response<bool>> UpdateAsync(T entity, CancellationToken ctx = default)
     {
         try
         {
@@ -160,7 +169,7 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
             entity.Version++;
 
             _dbContext.Entry(entity).State = EntityState.Modified;
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ctx);
 
             return new Response<bool>(true);
         }
@@ -176,6 +185,35 @@ public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
             return new Response<bool>(
                 ErrorCode.UnexpectedError,
                 $"Failed to update entity: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
+    {
+        try
+        {
+            var entity = await _dbContext
+                .Set<T>()
+                .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted, ctx);
+
+            if (entity == null)
+                return new Response<bool>(ErrorCode.NotFound, $"Entity with ID {id} not found");
+
+            entity.IsDeleted = true;
+            entity.EditedDateTime = DateTime.UtcNow;
+            entity.Version++;
+
+            _dbContext.Set<T>().Update(entity);
+            await _dbContext.SaveChangesAsync(ctx);
+
+            return new Response<bool>(true);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Failed to delete entity: {ex.Message}"
             );
         }
     }
