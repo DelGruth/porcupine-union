@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Contract;
+using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Domain.Group;
 using UserAccessSystem.Domain.Permissions;
 using UserAccessSystem.Domain.User;
@@ -383,6 +384,7 @@ public class GroupRepository(UserAccessDbContext dbContext)
                 .Select(gp =>
                 {
                     gp.Permission.SourceGroupId = groupId;
+                    gp.Permission.SourceType = (int)PermissionSourceType.GroupLevel;
                     return gp.Permission;
                 });
 

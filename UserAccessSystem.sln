@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{4D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserAccessSystem.Contract", "UserAccessSystem.Contract\UserAccessSystem.Contract.csproj", "{14FE5105-8737-4890-B50B-92E3DF38079E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorApp1", "BlazorApp1\BlazorApp1.csproj", "{E5C24EDB-FAFD-4154-9194-DA9D75D5671E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserAccesSystem.External.Web", "UserAccesSystem.External.Web\UserAccesSystem.External.Web.csproj", "{E5C24EDB-FAFD-4154-9194-DA9D75D5671E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

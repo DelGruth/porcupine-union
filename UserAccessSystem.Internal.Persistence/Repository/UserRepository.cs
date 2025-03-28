@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Contract;
+using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Requests;
 using UserAccessSystem.Domain.Permissions;
 using UserAccessSystem.Domain.User;
@@ -323,29 +324,21 @@ public class UserRepository : Repository<User>, IUserRepository
             if (user == null)
                 return new Response<IEnumerable<Permission>>(ErrorCode.NotFound, "User not found");
 
-            var directPermissions = user
-                .UserPermissions.Where(up =>
-                    !up.IsDeleted
-                    && !up.Permission.IsDeleted
-                    && up.Group != null
-                    && !up.Group.IsDeleted
-                )
-                .Select(up =>
-                {
-                    up.Permission.SourceGroupId = up.GroupId;
-                    return up.Permission;
-                });
+            var directPermissions = user.UserPermissions.Select(up =>
+            {
+                up.Permission.SourceGroupId = up.GroupId;
+                up.Permission.SourceType = (int)PermissionSourceType.UserInGroup;
+                return up.Permission;
+            });
 
-            var groupPermissions = user
-                .Groups.Where(ug => !ug.IsDeleted && !ug.Group.IsDeleted)
-                .SelectMany(g =>
-                    g.Group.GroupPermissions.Where(gp => !gp.IsDeleted && !gp.Permission.IsDeleted)
-                        .Select(gp =>
-                        {
-                            gp.Permission.SourceGroupId = g.GroupId;
-                            return gp.Permission;
-                        })
-                );
+            var groupPermissions = user.Groups.SelectMany(g =>
+                g.Group.GroupPermissions.Select(gp =>
+                {
+                    gp.Permission.SourceGroupId = g.GroupId;
+                    gp.Permission.SourceType = (int)PermissionSourceType.GroupLevel;
+                    return gp.Permission;
+                })
+            );
 
             var allPermissions = directPermissions.Union(groupPermissions);
             return new Response<IEnumerable<Permission>>(allPermissions);

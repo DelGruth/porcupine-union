@@ -1,18 +1,17 @@
 @page "/groups"
-@using UserAccessSystem.Contract
 @using UserAccessSystem.Contract.Clients
 @using UserAccessSystem.Contract.Dtos
 @using UserAccessSystem.Contract.Requests
 @using UserAccessSystem.Contract.Responses
-@using Microsoft.JSInterop
 @inject ApiClient ApiClient
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <PageTitle>Groups Management</PageTitle>
 
 <div class="container">
     <h1>Groups</h1>
-    
+
     @if (distribution != null)
     {
         <div class="alert alert-info">
@@ -41,56 +40,58 @@
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Users Count</th>
-                        <th>Users</th>
-                        <th>Actions</th>
-                    </tr>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Users Count</th>
+                    <th>Users</th>
+                    <th>Actions</th>
+                </tr>
                 </thead>
                 <tbody>
-                    @foreach (var group in groups)
-                    {
-                        <tr>
-                            <td>@group.Name</td>
-                            <td>@group.Description</td>
-                            <td>@(distribution?.Distribution?.TryGetValue(group.Name, out var count) ?? false ? count : 0)</td>
-                            <td>
-                                @if (group.Users?.Any() == true)
-                                {
-                                    <div class="d-flex flex-wrap gap-2">
-                                        @foreach (var user in group.Users)
-                                        {
-                                            <div class="badge bg-primary d-flex align-items-center">
-                                                @user.Username
-                                                <button class="btn btn-link btn-sm text-white p-0 ms-2" 
-                                                        @onclick="() => RemoveUserFromGroup(user.Id, group.Id)">
-                                                    <i class="bi bi-x"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="btn btn-primary btn-sm" @onclick="() => ShowEditDialog(group)">
-                                        Edit
-                                    </button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => ShowGroupPermissionsDialog(group)">
-                                        Group Permissions
-                                    </button>
-                                    <button class="btn btn-info btn-sm" @onclick="() => ShowViewUsersDialog(group)">
-                                        View Users
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group.Id)">
-                                        Delete
-                                    </button>
+                @foreach (var group in groups)
+                {
+                    <tr>
+                        <td>
+                            <ComponentHyperLink Text="@group.Name" ElementType="group" ElementId="@group.Id" />
+                        </td>
+                        <td>@group.Description</td>
+                        <td>@(distribution?.Distribution?.TryGetValue(group.Name, out var count) ?? false ? count : 0)</td>
+                        <td>
+                            @if (group.Users?.Any() == true)
+                            {
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach (var user in group.Users)
+                                    {
+                                        <div class="badge bg-primary d-flex align-items-center">
+                                            <ComponentHyperLink Text="@user.Username" ElementType="user" ElementId="@user.Id" />
+                                            <button class="btn btn-link btn-sm text-white p-0 ms-2"
+                                                    @onclick="() => RemoveUserFromGroup(user.Id, group.Id)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
-                            </td>
-                        </tr>
-                    }
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-primary btn-sm" @onclick="() => ShowEditDialog(group)">
+                                    Edit
+                                </button>
+                                <button class="btn btn-info btn-sm" @onclick="() => ShowGroupPermissionsDialog(group)">
+                                    Group Permissions
+                                </button>
+                                <button class="btn btn-info btn-sm" @onclick="() => ShowViewUsersDialog(group)">
+                                    View Users
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group.Id)">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
                 </tbody>
             </table>
         </div>
@@ -174,35 +175,35 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Search users..." 
-                               @bind-value="userSearchTerm" 
+                        <input type="text"
+                               class="form-control"
+                               placeholder="Search users..."
+                               @bind-value="userSearchTerm"
                                @bind-value:event="oninput" />
                     </div>
                     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-hover">
                             <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Action</th>
-                                </tr>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Action</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var user in FilteredUsers)
-                                {
-                                    <tr>
-                                        <td>@user.Username</td>
-                                        <td>@user.Email</td>
-                                        <td>
-                                            <button class="btn btn-primary btn-sm" 
-                                                    @onclick="() => AddUserToGroupById(user.Id)">
-                                                Add
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
+                            @foreach (var user in FilteredUsers)
+                            {
+                                <tr>
+                                    <td>@user.Username</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm"
+                                                @onclick="() => AddUserToGroupById(user.Id)">
+                                            Add
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
@@ -234,7 +235,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="HideAddPermissionDialog">Cancel</button>
                     <button type="button" class="btn btn-primary" @onclick="AddPermissionToGroup">Add Permission</button>
-                    <button type="button" class="btn btn-danger" 
+                    <button type="button" class="btn btn-danger"
                             @onclick="() => RemovePermissionFromGroup(selectedPermissionId)">
                         Remove Permission
                     </button>
@@ -260,10 +261,10 @@
                             <button class="btn btn-success" @onclick="() => ShowAddUserDialog(selectedGroupId)">Add New User</button>
                         </div>
                         <div class="col">
-                            <input type="text" 
-                                   class="form-control" 
-                                   placeholder="Search users..." 
-                                   @bind-value="userSearchTerm" 
+                            <input type="text"
+                                   class="form-control"
+                                   placeholder="Search users..."
+                                   @bind-value="userSearchTerm"
                                    @bind-value:event="oninput" />
                         </div>
                     </div>
@@ -271,32 +272,34 @@
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Actions</th>
-                                </tr>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var user in FilteredGroupUsers)
-                                {
-                                    <tr>
-                                        <td>@user.Username</td>
-                                        <td>@user.Email</td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button class="btn btn-info btn-sm" 
-                                                        @onclick="() => ShowUserPermissionsDialog(user)">
-                                                    View Permissions
-                                                </button>
-                                                <button class="btn btn-danger btn-sm" 
-                                                        @onclick="() => RemoveUserFromGroup(user.Id, selectedGroupId)">
-                                                    Remove from Group
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
+                            @foreach (var user in FilteredGroupUsers)
+                            {
+                                <tr>
+                                    <td>
+                                        <ComponentHyperLink Text="@user.Username" ElementType="user" ElementId="@user.Id" />
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-info btn-sm"
+                                                    @onclick="() => ShowUserPermissionsDialog(user)">
+                                                View Permissions
+                                            </button>
+                                            <button class="btn btn-danger btn-sm"
+                                                    @onclick="() => RemoveUserFromGroup(user.Id, selectedGroupId)">
+                                                Remove from Group
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
@@ -330,8 +333,8 @@
                                     <option value="@permission.Id">@permission.Name</option>
                                 }
                             </select>
-                            <button class="btn btn-primary" 
-                                    @onclick="AddPermissionToUser" 
+                            <button class="btn btn-primary"
+                                    @onclick="AddPermissionToUser"
                                     disabled="@(selectedPermissionId == Guid.Empty)">
                                 Add Permission
                             </button>
@@ -342,26 +345,39 @@
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
-                                <tr>
-                                    <th>Permission Name</th>
-                                    <th>Description</th>
-                                    <th>Actions</th>
-                                </tr>
+                            <tr>
+                                <th>Permission Name</th>
+                                <th>Description</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var permission in userPermissions)
-                                {
-                                    <tr>
-                                        <td>@permission.Name</td>
-                                        <td>@permission.Description</td>
-                                        <td>
-                                            <button class="btn btn-danger btn-sm" 
-                                                    @onclick="() => RemovePermissionFromUser(selectedUser.Id, permission.Id)">
+                            @foreach (var permission in userPermissions)
+                            {
+                                <tr>
+                                    <td>@permission.Name</td>
+                                    <td>@permission.Description</td>
+                                    <td>
+                                        @if (permission.SourceType == PermissionSourceType.GroupLevel)
+                                        {
+                                            <span class="badge bg-info">Group Level</span>
+                                        }
+                                        else if (permission.SourceType == PermissionSourceType.UserInGroup)
+                                        {
+                                            <span class="badge bg-primary">User in Group</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (permission.SourceType == PermissionSourceType.UserInGroup)
+                                        {
+                                            <button class="btn btn-danger btn-sm" @onclick="() => RemovePermissionFromUser(selectedUser.Id, permission.Id)">
                                                 Remove
                                             </button>
-                                        </td>
-                                    </tr>
-                                }
+                                        }
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
@@ -390,13 +406,13 @@
                         <div class="input-group">
                             <select class="form-select" @bind="selectedPermissionId">
                                 <option value="">Select a permission...</option>
-                                @foreach (var permission in availablePermissions.Where(p => 
-                                    !groupPermissions.Any(gp => gp.Id == p.Id)))
+                                @foreach (var permission in availablePermissions.Where(p =>
+                                                                                           !groupPermissions.Any(gp => gp.Id == p.Id)))
                                 {
                                     <option value="@permission.Id">@permission.Name</option>
                                 }
                             </select>
-                            <button class="btn btn-primary" 
+                            <button class="btn btn-primary"
                                     @onclick="async () => await AddPermissionToGroup()"
                                     disabled="@(selectedPermissionId == Guid.Empty)">
                                 Add Permission
@@ -408,26 +424,26 @@
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
-                                <tr>
-                                    <th>Permission Name</th>
-                                    <th>Description</th>
-                                    <th>Actions</th>
-                                </tr>
+                            <tr>
+                                <th>Permission Name</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                @foreach (var permission in groupPermissions)
-                                {
-                                    <tr>
-                                        <td>@permission.Name</td>
-                                        <td>@permission.Description</td>
-                                        <td>
-                                            <button class="btn btn-danger btn-sm" 
-                                                    @onclick="() => RemovePermissionFromGroup(permission.Id)">
-                                                Remove
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
+                            @foreach (var permission in groupPermissions)
+                            {
+                                <tr>
+                                    <td>@permission.Name</td>
+                                    <td>@permission.Description</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm"
+                                                @onclick="() => RemovePermissionFromGroup(permission.Id)">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                             </tbody>
                         </table>
                     </div>
@@ -442,6 +458,10 @@
 }
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? OpenGroup { get; set; }
+
     private bool isLoading = true;
     private IEnumerable<GroupDto> groups = Array.Empty<GroupDto>();
     private IEnumerable<UserDto> allUsers = Array.Empty<UserDto>();
@@ -467,16 +487,17 @@
 
     private IEnumerable<UserDto> FilteredUsers =>
         string.IsNullOrWhiteSpace(userSearchTerm)
-            ? allUsers
+            ? allUsers.Where(u => !selectedGroup?.Users?.Any(gu => gu.Id == u.Id) ?? true)
             : allUsers.Where(u =>
-                u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase));
+                                 (!selectedGroup?.Users?.Any(gu => gu.Id == u.Id) ?? true) &&
+                                 (u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                 u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase)));
 
     private IEnumerable<UserSimpleDto> FilteredGroupUsers =>
-        selectedGroup?.Users?
-            .Where(u => string.IsNullOrEmpty(userSearchTerm) ||
-                        u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                        u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))
+            selectedGroup?.Users?
+                .Where(u => string.IsNullOrEmpty(userSearchTerm) ||
+                       u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                       u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))
             ?? Array.Empty<UserSimpleDto>();
 
     protected override async Task OnInitializedAsync()
@@ -485,10 +506,10 @@
         {
             isLoading = true;
             await Task.WhenAll(
-                LoadGroups(),
-                LoadDistribution(),
-                LoadUsers()
-            );
+                               LoadGroups(),
+                               LoadDistribution(),
+                               LoadUsers()
+                              );
         }
         catch (Exception ex)
         {
@@ -502,10 +523,10 @@
 
     private async Task LoadUsers()
     {
-        var response = await ApiClient.GetAsync<Response<IEnumerable<UserDto>>>("users");
-        if (response.Success )
+        var response = await ApiClient.GetAsync<IEnumerable<UserDto>>("users");
+        if (response.Success)
         {
-            allUsers = response.Data.Data; 
+            allUsers = response.Data;
         }
         else
         {
@@ -582,18 +603,32 @@
         errorMessage = null;
     }
 
-    private void ShowAddUserDialog(Guid groupId)
+    private async Task ShowAddUserDialog(Guid groupId)
     {
+        showViewUsersDialog = false;
         selectedGroupId = groupId;
+        await LoadAllUsers();
         showAddUserDialog = true;
-        userSearchTerm = string.Empty;
-        errorMessage = null;
     }
 
     private void HideAddUserDialog()
     {
         showAddUserDialog = false;
-        errorMessage = null;
+        showViewUsersDialog = true;
+        userSearchTerm = string.Empty;
+    }
+
+    private async Task LoadAllUsers()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<UserDto>>("users");
+        if (response.Success)
+        {
+            allUsers = response.Data;
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
     }
 
     private void ShowAddPermissionDialog(Guid groupId)
@@ -610,13 +645,14 @@
         errorMessage = null;
     }
 
-    private void ShowViewUsersDialog(GroupDto group)
+    private async Task ShowViewUsersDialog(GroupDto group)
     {
         selectedGroup = group;
         selectedGroupId = group.Id;
         showViewUsersDialog = true;
         userSearchTerm = string.Empty;
         errorMessage = null;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HideViewUsersDialog()
@@ -632,17 +668,17 @@
         {
             var request = new CreateGroupRequest
             {
-                Name = name,
-                Description = description
+            Name = name,
+            Description = description
             };
 
             var response = await ApiClient.PostAsync<GroupResponse>("groups", request);
             if (response.Success)
             {
                 await Task.WhenAll(
-                    LoadGroups(),
-                    LoadDistribution()
-                );
+                                   LoadGroups(),
+                                   LoadDistribution()
+                                  );
                 HideCreateDialog();
             }
             else
@@ -662,18 +698,18 @@
         {
             var request = new UpdateGroupRequest
             {
-                Id = selectedGroupId,
-                Name = name,
-                Description = description
+            Id = selectedGroupId,
+            Name = name,
+            Description = description
             };
 
             var response = await ApiClient.PutAsync<GroupResponse>("groups", request);
             if (response.Success)
             {
                 await Task.WhenAll(
-                    LoadGroups(),
-                    LoadDistribution()
-                );
+                                   LoadGroups(),
+                                   LoadDistribution()
+                                  );
                 HideEditDialog();
             }
             else
@@ -700,9 +736,9 @@
             if (response.Success)
             {
                 await Task.WhenAll(
-                    LoadGroups(),
-                    LoadDistribution()
-                );
+                                   LoadGroups(),
+                                   LoadDistribution()
+                                  );
             }
             else
             {
@@ -723,9 +759,10 @@
             if (response.Success)
             {
                 await Task.WhenAll(
-                    LoadGroups(),
-                    LoadDistribution()
-                );
+                                   LoadGroups(),
+                                   LoadDistribution()
+                                  );
+                await ShowViewUsersDialog(groups.First(g => g.Id == selectedGroupId));
                 HideAddUserDialog();
             }
             else
@@ -752,9 +789,10 @@
             if (response.Success)
             {
                 await Task.WhenAll(
-                    LoadGroups(),
-                    LoadDistribution()
-                );
+                                   LoadGroups(),
+                                   LoadDistribution()
+                                  );
+                await ShowViewUsersDialog(groups.First(g => g.Id == groupId));
             }
             else
             {
@@ -786,7 +824,7 @@
     private async Task RemovePermissionFromGroup(Guid permissionId)
     {
         if (permissionId == Guid.Empty) return;
-        
+
         var response = await ApiClient.DeleteAsync<bool>($"groups/{selectedGroupId}/permissions/{permissionId}");
         if (response.Success)
         {
@@ -844,10 +882,10 @@
 
     private async Task LoadUserPermissions(Guid userId)
     {
-        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>($"users/{userId}/permissions");
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>($"users/permissions?userId={userId}");
         if (response.Success)
         {
-            userPermissions = response.Data ?? Array.Empty<PermissionDto>();
+            userPermissions = response.Data;
         }
         else
         {
@@ -860,9 +898,9 @@
         if (selectedUser == null || selectedPermissionId == Guid.Empty) return;
 
         var response = await ApiClient.PostAsync<bool>(
-            $"groups/{selectedGroupId}/users/{selectedUser.Id}/permissions/{selectedPermissionId}", 
-            null);
-        
+                                                       $"groups/{selectedGroupId}/users/{selectedUser.Id}/permissions/{selectedPermissionId}",
+                                                       null);
+
         if (response.Success)
         {
             await LoadUserPermissions(selectedUser.Id);
@@ -901,6 +939,21 @@
         else
         {
             errorMessage = response.Message;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (!string.IsNullOrEmpty(OpenGroup) && Guid.TryParse(OpenGroup, out Guid groupId))
+        {
+            var group = groups.FirstOrDefault(g => g.Id == groupId);
+            if (group != null)
+            {
+                await ShowGroupPermissionsDialog(group);
+                NavigationManager.NavigateTo(NavigationManager.Uri.Split('?')[0], replace: true);
+            }
         }
     }
 }

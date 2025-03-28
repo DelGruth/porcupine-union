@@ -12,4 +12,5 @@ public class Permission : BaseDomainObj
         new List<GroupPermission>();
     public IEnumerable<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
     public Guid? SourceGroupId { get; set; }
+    public int SourceType { get; set; }
 }

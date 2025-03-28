@@ -2,6 +2,12 @@ using UserAccessSystem.Domain.Permissions;
 
 namespace UserAccessSystem.Contract.Dtos;
 
+public enum PermissionSourceType
+{
+    GroupLevel,
+    UserInGroup,
+}
+
 public class PermissionDto
 {
     public Guid Id { get; set; }
@@ -12,6 +18,7 @@ public class PermissionDto
     public IEnumerable<Guid> GroupIds { get; set; } = new List<Guid>();
     public IEnumerable<Guid> UserIds { get; set; } = new List<Guid>();
     public Guid? SourceGroupId { get; set; }
+    public PermissionSourceType SourceType { get; set; }
 
     public PermissionDto() { }
 
@@ -25,5 +32,6 @@ public class PermissionDto
         GroupIds = permission.GroupPermissions?.Select(gp => gp.GroupId) ?? new List<Guid>();
         UserIds = permission.UserPermissions?.Select(up => up.UserId) ?? new List<Guid>();
         SourceGroupId = permission.SourceGroupId;
+        SourceType = (PermissionSourceType)permission.SourceType;
     }
 }

@@ -1,5 +1,5 @@
-using BlazorApp1.Components;
 using UserAccessSystem.Contract.Common;
+using UserAccesSystem.External.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
