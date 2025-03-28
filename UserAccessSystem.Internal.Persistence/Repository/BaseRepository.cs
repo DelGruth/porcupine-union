@@ -2,20 +2,16 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Domain.Common;
+using UserAccessSystem.Internal.Application.Peristence;
 using UserAccessSystem.Internal.Persistence.DbContext;
-using UserAccessSystem.Internal.Persistence.Interfaces;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
 
-public class Repository<T> : IRepository<T>
+public class Repository<T>(UserAccessDbContext dbContext) : IRepository<T>
     where T : BaseDomainObj
 {
-    protected readonly UserAccessDbContext _dbContext;
-
-    public Repository(UserAccessDbContext dbContext)
-    {
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-    }
+    private readonly UserAccessDbContext _dbContext =
+        dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
     public async Task<Response<T>> AddAsync(T entity)
     {

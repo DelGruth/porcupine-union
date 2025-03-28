@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Domain.Common;
 
-namespace UserAccessSystem.Internal.Persistence.Interfaces;
+namespace UserAccessSystem.Internal.Application.Peristence;
 
 public interface IRepository<T>
     where T : BaseDomainObj

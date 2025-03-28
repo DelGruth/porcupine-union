@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using UserAccessSystem.Internal.Application.Peristence;
 using UserAccessSystem.Internal.Persistence.DbContext;
-using UserAccessSystem.Internal.Persistence.Interfaces;
 using UserAccessSystem.Internal.Persistence.Repository;
 
 namespace UserAccessSystem.Internal.Persistence.Common;
