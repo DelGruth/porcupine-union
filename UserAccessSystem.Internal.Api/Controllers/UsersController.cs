@@ -3,18 +3,18 @@ using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Requests;
-using UserAccessSystem.Internal.Api.Middleware;
 using UserAccessSystem.Internal.Application.Infrastructure;
+using UserAccessSystem.Internal.Infrastructure.Middleware;
 
 namespace UserAccessSystem.Internal.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-[AuthAttribute("SU", true, true)]
+[Auth("SU", true, true)]
 public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet]
-    [AuthAttribute("SU", true, false)]
+    [Auth("SU", true, false)]
     public async ValueTask<Response<IEnumerable<UserDto>>> GetAll(
         [FromQuery] DateTime? lastEntry
     ) => await userService.GetAllUsersAsync(lastEntry);

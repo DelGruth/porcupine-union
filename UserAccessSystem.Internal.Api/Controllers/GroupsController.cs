@@ -2,14 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Requests;
 using UserAccessSystem.Contract.Responses;
-using UserAccessSystem.Internal.Api.Middleware;
 using UserAccessSystem.Internal.Application.Infrastructure;
+using UserAccessSystem.Internal.Infrastructure.Middleware;
 
 namespace UserAccessSystem.Internal.Api.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-[AuthAttribute("SU", true, true)]
+[Auth("SU", true, true)]
 public class GroupsController(IGroupService groupService) : ControllerBase
 {
     [HttpGet]
