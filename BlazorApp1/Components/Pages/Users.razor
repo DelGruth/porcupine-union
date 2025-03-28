@@ -1,0 +1,165 @@
+@page "/users"
+@using UserAccessSystem.Contract
+@using UserAccessSystem.Contract.Clients
+@using UserAccessSystem.Contract.Dtos
+@using UserAccessSystem.Contract.Requests
+@inject ApiClient ApiClient
+
+<PageTitle>Users Management</PageTitle>
+
+<div class="container">
+    <h1>Users</h1>
+
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="ShowCreateDialog">
+            Create User
+        </button>
+    </div>
+
+    @if (!_users.Any())
+    {
+        <p>No users found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Groups</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _users)
+                    {
+                        <tr>
+                            <td>@user.Username</td>
+                            <td>@user.Email</td>
+                            <td>@(string.Join(", ", user.Groups?.Select(g => g.Name) ?? Array.Empty<string>()))</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteUser(user.Id)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@if (_showCreateDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create User</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" @bind="_username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" @bind="_email">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideCreateDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateUser">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private IEnumerable<UserDto> _users = Array.Empty<UserDto>();
+    private bool _showCreateDialog;
+    private string? _errorMessage;
+    
+    private string _username = string.Empty;
+    private string _email = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<UserDto>>("users");
+        if (response.Success)
+        {
+            _users = response.Data ?? Array.Empty<UserDto>();
+            _errorMessage = null;
+        }
+        else
+        {
+            _errorMessage = response.Message ?? "Failed to load users";
+        }
+    }
+
+    private void ShowCreateDialog()
+    {
+        _username = string.Empty;
+        _email = string.Empty;
+        _showCreateDialog = true;
+        _errorMessage = null;
+    }
+
+    private void HideCreateDialog()
+    {
+        _showCreateDialog = false;
+        _errorMessage = null;
+    }
+
+    private async Task CreateUser()
+    {
+        var request = new CreateUserRequest
+        {
+            Username = _username,
+            Email = _email,
+            Password = "AllPasswordsAreUnique"
+        };
+
+        var response = await ApiClient.PostAsync<UserDto>("users", request);
+        if (response.Success)
+        {
+            await LoadUsers();
+            HideCreateDialog();
+        }
+        else
+        {
+            _errorMessage = response.Message ?? "Failed to create user";
+        }
+    }
+
+    private async Task DeleteUser(Guid id)
+    {
+        var response = await ApiClient.DeleteAsync<bool>($"users/{id}");
+        if (response.Success)
+        {
+            await LoadUsers();
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+}

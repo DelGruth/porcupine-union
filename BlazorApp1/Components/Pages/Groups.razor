@@ -1,0 +1,165 @@
+@page "/groups"
+@using UserAccessSystem.Contract
+@using UserAccessSystem.Contract.Clients
+@using UserAccessSystem.Contract.Dtos
+@using UserAccessSystem.Contract.Requests
+@using UserAccessSystem.Contract.Responses
+@inject ApiClient ApiClient
+
+<PageTitle>Groups Management</PageTitle>
+
+<div class="container">
+    <h1>Groups</h1>
+
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="ShowCreateDialog">
+            Create Group
+        </button>
+    </div>
+
+    @if (!_groups.Any())
+    {
+        <p>No groups found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Users Count</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in _groups)
+                    {
+                        <tr>
+                            <td>@group.Name</td>
+                            <td>@group.Description</td>
+                            <td>@group.UserCount</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteGroup(group.Id)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@if (_showCreateDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Group</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="groupName" @bind="_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="groupDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="groupDescription" @bind="_description">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideCreateDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateGroup">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private IEnumerable<GroupDto> _groups = Array.Empty<GroupDto>();
+    private bool _showCreateDialog;
+    private string? _errorMessage;
+
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroups();
+    }
+
+    private async Task LoadGroups()
+    {
+        var response = await ApiClient.GetAsync<GroupListResponse>("groups");
+        if (response.Success)
+        {
+            _groups = response.Data?.Groups ?? Array.Empty<GroupDto>();
+            _errorMessage = null;
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+
+    private void ShowCreateDialog()
+    {
+        _name = string.Empty;
+        _description = string.Empty;
+        _showCreateDialog = true;
+        _errorMessage = null;
+    }
+
+    private void HideCreateDialog()
+    {
+        _showCreateDialog = false;
+        _errorMessage = null;
+    }
+
+    private async Task CreateGroup()
+    {
+        var request = new CreateGroupRequest
+        {
+            Name = _name,
+            Description = _description
+        };
+
+        var response = await ApiClient.PostAsync<GroupDto>("groups", request);
+        if (response.Success)
+        {
+            await LoadGroups();
+            HideCreateDialog();
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+
+    private async Task DeleteGroup(Guid id)
+    {
+        var response = await ApiClient.DeleteAsync<bool>($"groups/{id}");
+        if (response.Success)
+        {
+            await LoadGroups();
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+}

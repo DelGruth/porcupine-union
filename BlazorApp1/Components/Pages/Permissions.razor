@@ -1,0 +1,180 @@
+@page "/permissions"
+@using UserAccessSystem.Contract
+@using UserAccessSystem.Contract.Clients
+@using UserAccessSystem.Contract.Dtos
+@using UserAccessSystem.Contract.Requests
+@inject ApiClient ApiClient
+
+<PageTitle>Permissions Management</PageTitle>
+
+<div class="container">
+    <h1>Permissions</h1>
+
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="ShowCreateDialog">
+            Create Permission
+        </button>
+    </div>
+
+@if (!_permissions.Any())
+    {
+        <p>No permissions found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Read Only</th>
+                        <th>Write Only</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var permission in _permissions)
+                    {
+                        <tr>
+                            <td>@permission.Name</td>
+                            <td>@permission.Description</td>
+                            <td>@permission.ReadOnly</td>
+                            <td>@permission.WriteOnly</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeletePermission(permission.Id)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@if (_showCreateDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Permission</h5>
+                    <button type="button" class="btn-close" @onclick="HideCreateDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="permissionName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="permissionName" @bind="_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="permissionDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="permissionDescription" @bind="_description">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="readOnly" @bind="_readOnly">
+                        <label class="form-check-label" for="readOnly">Read Only</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="writeOnly" @bind="_writeOnly">
+                        <label class="form-check-label" for="writeOnly">Write Only</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideCreateDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreatePermission">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private IEnumerable<PermissionDto> _permissions = Array.Empty<PermissionDto>();
+    private bool _showCreateDialog;
+    private string? _errorMessage;
+    
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+    private bool _readOnly;
+    private bool _writeOnly;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPermissions();
+    }
+
+    private async Task LoadPermissions()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>("permissions");
+        if (response.Success)
+        {
+            _permissions = response.Data;
+            _errorMessage = null;
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+
+    private void ShowCreateDialog()
+    {
+        _name = string.Empty;
+        _description = string.Empty;
+        _readOnly = false;
+        _writeOnly = false;
+        _showCreateDialog = true;
+        _errorMessage = null;
+    }
+
+    private void HideCreateDialog()
+    {
+        _showCreateDialog = false;
+        _errorMessage = null;
+    }
+
+    private async Task CreatePermission()
+    {
+        var request = new CreatePermissionRequest
+        {
+            Name = _name,
+            Description = _description,
+            ReadOnly = _readOnly,
+            WriteOnly = _writeOnly
+        };
+
+        var response = await ApiClient.PostAsync<PermissionDto>("permissions", request);
+        if (response.Success)
+        {
+            await LoadPermissions();
+            HideCreateDialog();
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+
+    private async Task DeletePermission(Guid id)
+    {
+        var response = await ApiClient.DeleteAsync<bool>($"permissions/{id}");
+        if (response.Success)
+        {
+            await LoadPermissions();
+        }
+        else
+        {
+            _errorMessage = response.Message;
+        }
+    }
+}
