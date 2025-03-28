@@ -4,20 +4,35 @@
 @using UserAccessSystem.Contract.Dtos
 @using UserAccessSystem.Contract.Requests
 @using UserAccessSystem.Contract.Responses
+@using Microsoft.JSInterop
 @inject ApiClient ApiClient
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Groups Management</PageTitle>
 
 <div class="container">
     <h1>Groups</h1>
+    
+    @if (distribution != null)
+    {
+        <div class="alert alert-info">
+            Total Users Across All Groups: @distribution.Distribution.Sum(d => d.Value)
+        </div>
+    }
 
     <div class="mb-3">
-        <button class="btn btn-primary" @onclick="ShowCreateDialog">
-            Create Group
-        </button>
+        <button class="btn btn-primary" @onclick="ShowCreateDialog">Create Group</button>
     </div>
 
-    @if (!_groups.Any())
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!groups.Any())
     {
         <p>No groups found.</p>
     }
@@ -30,20 +45,49 @@
                         <th>Name</th>
                         <th>Description</th>
                         <th>Users Count</th>
+                        <th>Users</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var group in _groups)
+                    @foreach (var group in groups)
                     {
                         <tr>
                             <td>@group.Name</td>
                             <td>@group.Description</td>
-                            <td>@group.UserCount</td>
+                            <td>@(distribution?.Distribution?.TryGetValue(group.Name, out var count) ?? false ? count : 0)</td>
                             <td>
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteGroup(group.Id)">
-                                    Delete
-                                </button>
+                                @if (group.Users?.Any() == true)
+                                {
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var user in group.Users)
+                                        {
+                                            <div class="badge bg-primary d-flex align-items-center">
+                                                @user.Username
+                                                <button class="btn btn-link btn-sm text-white p-0 ms-2" 
+                                                        @onclick="() => RemoveUserFromGroup(user.Id, group.Id)">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary btn-sm" @onclick="() => ShowEditDialog(group)">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-info btn-sm" @onclick="() => ShowGroupPermissionsDialog(group)">
+                                        Group Permissions
+                                    </button>
+                                    <button class="btn btn-info btn-sm" @onclick="() => ShowViewUsersDialog(group)">
+                                        View Users
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" @onclick="async () => await DeleteGroup(group.Id)">
+                                        Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -52,15 +96,16 @@
         </div>
     }
 
-    @if (_errorMessage != null)
+    @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger" role="alert">
-            @_errorMessage
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
         </div>
     }
 </div>
 
-@if (_showCreateDialog)
+@if (showCreateDialog)
 {
     <div class="modal fade show" style="display: block" tabindex="-1">
         <div class="modal-dialog">
@@ -72,11 +117,11 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="groupName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="groupName" @bind="_name">
+                        <input type="text" class="form-control" id="groupName" @bind="name">
                     </div>
                     <div class="mb-3">
                         <label for="groupDescription" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="groupDescription" @bind="_description">
+                        <input type="text" class="form-control" id="groupDescription" @bind="description">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -89,17 +134,384 @@
     <div class="modal-backdrop fade show"></div>
 }
 
-@code {
-    private IEnumerable<GroupDto> _groups = Array.Empty<GroupDto>();
-    private bool _showCreateDialog;
-    private string? _errorMessage;
+@if (showEditDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Group</h5>
+                    <button type="button" class="btn-close" @onclick="HideEditDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editGroupName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="editGroupName" @bind="name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editGroupDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="editGroupDescription" @bind="description">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideEditDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="UpdateGroup">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
 
-    private string _name = string.Empty;
-    private string _description = string.Empty;
+@if (showAddUserDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add User to Group</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddUserDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Search users..." 
+                               @bind-value="userSearchTerm" 
+                               @bind-value:event="oninput" />
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in FilteredUsers)
+                                {
+                                    <tr>
+                                        <td>@user.Username</td>
+                                        <td>@user.Email</td>
+                                        <td>
+                                            <button class="btn btn-primary btn-sm" 
+                                                    @onclick="() => AddUserToGroupById(user.Id)">
+                                                Add
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideAddUserDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showAddPermissionDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Permission to Group</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddPermissionDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="permissionId" class="form-label">Permission ID</label>
+                        <input type="text" class="form-control" id="permissionId" @bind="selectedPermissionId">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideAddPermissionDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="AddPermissionToGroup">Add Permission</button>
+                    <button type="button" class="btn btn-danger" 
+                            @onclick="() => RemovePermissionFromGroup(selectedPermissionId)">
+                        Remove Permission
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showViewUsersDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manage Users - @selectedGroup?.Name</h5>
+                    <button type="button" class="btn-close" @onclick="HideViewUsersDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <button class="btn btn-success" @onclick="() => ShowAddUserDialog(selectedGroupId)">Add New User</button>
+                        </div>
+                        <div class="col">
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Search users..." 
+                                   @bind-value="userSearchTerm" 
+                                   @bind-value:event="oninput" />
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in FilteredGroupUsers)
+                                {
+                                    <tr>
+                                        <td>@user.Username</td>
+                                        <td>@user.Email</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button class="btn btn-info btn-sm" 
+                                                        @onclick="() => ShowUserPermissionsDialog(user)">
+                                                    View Permissions
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" 
+                                                        @onclick="() => RemoveUserFromGroup(user.Id, selectedGroupId)">
+                                                    Remove from Group
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideViewUsersDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showUserPermissionsDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manage Permissions - @selectedUser?.Username</h5>
+                    <button type="button" class="btn-close" @onclick="HideUserPermissionsDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6>Add New Permission</h6>
+                        <div class="input-group">
+                            <select class="form-select" @bind="selectedPermissionId">
+                                <option value="">Select a permission...</option>
+                                @foreach (var permission in availablePermissions)
+                                {
+                                    <option value="@permission.Id">@permission.Name</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary" 
+                                    @onclick="AddPermissionToUser" 
+                                    disabled="@(selectedPermissionId == Guid.Empty)">
+                                Add Permission
+                            </button>
+                        </div>
+                    </div>
+
+                    <h6>Current Permissions</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Permission Name</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var permission in userPermissions)
+                                {
+                                    <tr>
+                                        <td>@permission.Name</td>
+                                        <td>@permission.Description</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" 
+                                                    @onclick="() => RemovePermissionFromUser(selectedUser.Id, permission.Id)">
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideUserPermissionsDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (showGroupPermissionsDialog)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Group Permissions - @selectedGroup?.Name</h5>
+                    <button type="button" class="btn-close" @onclick="HideGroupPermissionsDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6>Add New Permission</h6>
+                        <div class="input-group">
+                            <select class="form-select" @bind="selectedPermissionId">
+                                <option value="">Select a permission...</option>
+                                @foreach (var permission in availablePermissions.Where(p => 
+                                    !groupPermissions.Any(gp => gp.Id == p.Id)))
+                                {
+                                    <option value="@permission.Id">@permission.Name</option>
+                                }
+                            </select>
+                            <button class="btn btn-primary" 
+                                    @onclick="async () => await AddPermissionToGroup()"
+                                    disabled="@(selectedPermissionId == Guid.Empty)">
+                                Add Permission
+                            </button>
+                        </div>
+                    </div>
+
+                    <h6>Current Group Permissions</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Permission Name</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var permission in groupPermissions)
+                                {
+                                    <tr>
+                                        <td>@permission.Name</td>
+                                        <td>@permission.Description</td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" 
+                                                    @onclick="() => RemovePermissionFromGroup(permission.Id)">
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideGroupPermissionsDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private bool isLoading = true;
+    private IEnumerable<GroupDto> groups = Array.Empty<GroupDto>();
+    private IEnumerable<UserDto> allUsers = Array.Empty<UserDto>();
+    private GroupUserDistributionResponse? distribution;
+    private bool showCreateDialog;
+    private bool showEditDialog;
+    private bool showAddUserDialog;
+    private bool showAddPermissionDialog;
+    private bool showViewUsersDialog;
+    private bool showUserPermissionsDialog;
+    private bool showGroupPermissionsDialog;
+    private string? errorMessage;
+    private Guid selectedGroupId;
+    private Guid selectedPermissionId;
+    private string name = string.Empty;
+    private string description = string.Empty;
+    private string userSearchTerm = string.Empty;
+    private GroupDto? selectedGroup;
+    private UserSimpleDto? selectedUser;
+    private IEnumerable<PermissionDto> availablePermissions = Array.Empty<PermissionDto>();
+    private IEnumerable<PermissionDto> userPermissions = Array.Empty<PermissionDto>();
+    private IEnumerable<PermissionDto> groupPermissions = Array.Empty<PermissionDto>();
+
+    private IEnumerable<UserDto> FilteredUsers =>
+        string.IsNullOrWhiteSpace(userSearchTerm)
+            ? allUsers
+            : allUsers.Where(u =>
+                u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<UserSimpleDto> FilteredGroupUsers =>
+        selectedGroup?.Users?
+            .Where(u => string.IsNullOrEmpty(userSearchTerm) ||
+                        u.Username.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                        u.Email.Contains(userSearchTerm, StringComparison.OrdinalIgnoreCase))
+            ?? Array.Empty<UserSimpleDto>();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadGroups();
+        try
+        {
+            isLoading = true;
+            await Task.WhenAll(
+                LoadGroups(),
+                LoadDistribution(),
+                LoadUsers()
+            );
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "An error occurred while loading data: " + ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        var response = await ApiClient.GetAsync<Response<IEnumerable<UserDto>>>("users");
+        if (response.Success )
+        {
+            allUsers = response.Data.Data; 
+        }
+        else
+        {
+            allUsers = Array.Empty<UserDto>();
+            errorMessage = response.Message;
+        }
     }
 
     private async Task LoadGroups()
@@ -107,59 +519,388 @@
         var response = await ApiClient.GetAsync<GroupListResponse>("groups");
         if (response.Success)
         {
-            _groups = response.Data?.Groups ?? Array.Empty<GroupDto>();
-            _errorMessage = null;
+            groups = response.Data?.Groups ?? Array.Empty<GroupDto>();
         }
         else
         {
-            _errorMessage = response.Message;
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task LoadDistribution()
+    {
+        var response = await ApiClient.GetAsync<GroupUserDistributionResponse>("groups/users/distribution");
+        if (response.Success)
+        {
+            distribution = response.Data;
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task LoadPermissions()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>("permissions");
+        if (response.Success)
+        {
+            availablePermissions = response.Data ?? Array.Empty<PermissionDto>();
+        }
+        else
+        {
+            errorMessage = response.Message;
         }
     }
 
     private void ShowCreateDialog()
     {
-        _name = string.Empty;
-        _description = string.Empty;
-        _showCreateDialog = true;
-        _errorMessage = null;
+        name = string.Empty;
+        description = string.Empty;
+        showCreateDialog = true;
+        errorMessage = null;
     }
 
     private void HideCreateDialog()
     {
-        _showCreateDialog = false;
-        _errorMessage = null;
+        showCreateDialog = false;
+        errorMessage = null;
+    }
+
+    private void ShowEditDialog(GroupDto group)
+    {
+        selectedGroupId = group.Id;
+        name = group.Name;
+        description = group.Description;
+        showEditDialog = true;
+        errorMessage = null;
+    }
+
+    private void HideEditDialog()
+    {
+        showEditDialog = false;
+        errorMessage = null;
+    }
+
+    private void ShowAddUserDialog(Guid groupId)
+    {
+        selectedGroupId = groupId;
+        showAddUserDialog = true;
+        userSearchTerm = string.Empty;
+        errorMessage = null;
+    }
+
+    private void HideAddUserDialog()
+    {
+        showAddUserDialog = false;
+        errorMessage = null;
+    }
+
+    private void ShowAddPermissionDialog(Guid groupId)
+    {
+        selectedGroupId = groupId;
+        selectedPermissionId = Guid.Empty;
+        showAddPermissionDialog = true;
+        errorMessage = null;
+    }
+
+    private void HideAddPermissionDialog()
+    {
+        showAddPermissionDialog = false;
+        errorMessage = null;
+    }
+
+    private void ShowViewUsersDialog(GroupDto group)
+    {
+        selectedGroup = group;
+        selectedGroupId = group.Id;
+        showViewUsersDialog = true;
+        userSearchTerm = string.Empty;
+        errorMessage = null;
+    }
+
+    private void HideViewUsersDialog()
+    {
+        showViewUsersDialog = false;
+        selectedGroup = null;
+        errorMessage = null;
     }
 
     private async Task CreateGroup()
     {
-        var request = new CreateGroupRequest
+        try
         {
-            Name = _name,
-            Description = _description
-        };
+            var request = new CreateGroupRequest
+            {
+                Name = name,
+                Description = description
+            };
 
-        var response = await ApiClient.PostAsync<GroupDto>("groups", request);
-        if (response.Success)
-        {
-            await LoadGroups();
-            HideCreateDialog();
+            var response = await ApiClient.PostAsync<GroupResponse>("groups", request);
+            if (response.Success)
+            {
+                await Task.WhenAll(
+                    LoadGroups(),
+                    LoadDistribution()
+                );
+                HideCreateDialog();
+            }
+            else
+            {
+                errorMessage = response.Message;
+            }
         }
-        else
+        catch (Exception ex)
         {
-            _errorMessage = response.Message;
+            errorMessage = "Failed to create group: " + ex.Message;
+        }
+    }
+
+    private async Task UpdateGroup()
+    {
+        try
+        {
+            var request = new UpdateGroupRequest
+            {
+                Id = selectedGroupId,
+                Name = name,
+                Description = description
+            };
+
+            var response = await ApiClient.PutAsync<GroupResponse>("groups", request);
+            if (response.Success)
+            {
+                await Task.WhenAll(
+                    LoadGroups(),
+                    LoadDistribution()
+                );
+                HideEditDialog();
+            }
+            else
+            {
+                errorMessage = response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to update group: " + ex.Message;
         }
     }
 
     private async Task DeleteGroup(Guid id)
     {
-        var response = await ApiClient.DeleteAsync<bool>($"groups/{id}");
+        try
+        {
+            if (!await JSRuntime.InvokeAsync<bool>("confirm", new[] { "Are you sure you want to delete this group?" }))
+            {
+                return;
+            }
+
+            var response = await ApiClient.DeleteAsync<bool>($"groups/{id}");
+            if (response.Success)
+            {
+                await Task.WhenAll(
+                    LoadGroups(),
+                    LoadDistribution()
+                );
+            }
+            else
+            {
+                errorMessage = response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to delete group: " + ex.Message;
+        }
+    }
+
+    private async Task AddUserToGroupById(Guid userId)
+    {
+        try
+        {
+            var response = await ApiClient.PostAsync<bool>($"groups/{selectedGroupId}/users/{userId}", null);
+            if (response.Success)
+            {
+                await Task.WhenAll(
+                    LoadGroups(),
+                    LoadDistribution()
+                );
+                HideAddUserDialog();
+            }
+            else
+            {
+                errorMessage = response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to add user to group: " + ex.Message;
+        }
+    }
+
+    private async Task RemoveUserFromGroup(Guid userId, Guid groupId)
+    {
+        try
+        {
+            if (!await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to remove this user from the group?"))
+            {
+                return;
+            }
+
+            var response = await ApiClient.DeleteAsync<bool>($"groups/{groupId}/users/{userId}");
+            if (response.Success)
+            {
+                await Task.WhenAll(
+                    LoadGroups(),
+                    LoadDistribution()
+                );
+            }
+            else
+            {
+                errorMessage = response.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to remove user from group: " + ex.Message;
+        }
+    }
+
+    private async Task AddPermissionToGroup()
+    {
+        if (selectedPermissionId == Guid.Empty) return;
+
+        var response = await ApiClient.PostAsync<bool>($"groups/{selectedGroupId}/permissions/{selectedPermissionId}", null);
         if (response.Success)
         {
-            await LoadGroups();
+            await LoadGroupPermissions();
+            selectedPermissionId = Guid.Empty;
         }
         else
         {
-            _errorMessage = response.Message;
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task RemovePermissionFromGroup(Guid permissionId)
+    {
+        if (permissionId == Guid.Empty) return;
+        
+        var response = await ApiClient.DeleteAsync<bool>($"groups/{selectedGroupId}/permissions/{permissionId}");
+        if (response.Success)
+        {
+            await LoadGroupPermissions();
+            HideAddPermissionDialog();
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task RemovePermissionFromUser(Guid userId, Guid permissionId)
+    {
+        var response = await ApiClient.DeleteAsync<bool>($"groups/{selectedGroupId}/users/{userId}/permissions/{permissionId}");
+        if (response.Success)
+        {
+            await LoadUserPermissions(userId);
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task ShowUserPermissionsDialog(UserSimpleDto user)
+    {
+        selectedUser = user;
+        showUserPermissionsDialog = true;
+        selectedPermissionId = Guid.Empty;
+        await LoadAvailablePermissions();
+        await LoadUserPermissions(user.Id);
+    }
+
+    private void HideUserPermissionsDialog()
+    {
+        showUserPermissionsDialog = false;
+        selectedUser = null;
+        availablePermissions = Array.Empty<PermissionDto>();
+        userPermissions = Array.Empty<PermissionDto>();
+    }
+
+    private async Task LoadAvailablePermissions()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>("permissions");
+        if (response.Success)
+        {
+            availablePermissions = response.Data ?? Array.Empty<PermissionDto>();
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task LoadUserPermissions(Guid userId)
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>($"users/{userId}/permissions");
+        if (response.Success)
+        {
+            userPermissions = response.Data ?? Array.Empty<PermissionDto>();
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task AddPermissionToUser()
+    {
+        if (selectedUser == null || selectedPermissionId == Guid.Empty) return;
+
+        var response = await ApiClient.PostAsync<bool>(
+            $"groups/{selectedGroupId}/users/{selectedUser.Id}/permissions/{selectedPermissionId}", 
+            null);
+        
+        if (response.Success)
+        {
+            await LoadUserPermissions(selectedUser.Id);
+            selectedPermissionId = Guid.Empty;
+        }
+        else
+        {
+            errorMessage = response.Message;
+        }
+    }
+
+    private async Task ShowGroupPermissionsDialog(GroupDto group)
+    {
+        selectedGroup = group;
+        selectedGroupId = group.Id;
+        showGroupPermissionsDialog = true;
+        selectedPermissionId = Guid.Empty;
+        await LoadAvailablePermissions();
+        await LoadGroupPermissions();
+    }
+
+    private void HideGroupPermissionsDialog()
+    {
+        showGroupPermissionsDialog = false;
+        selectedGroup = null;
+        groupPermissions = Array.Empty<PermissionDto>();
+    }
+
+    private async Task LoadGroupPermissions()
+    {
+        var response = await ApiClient.GetAsync<IEnumerable<PermissionDto>>($"groups/{selectedGroupId}/permissions");
+        if (response.Success)
+        {
+            groupPermissions = response.Data ?? Array.Empty<PermissionDto>();
+        }
+        else
+        {
+            errorMessage = response.Message;
         }
     }
 }
