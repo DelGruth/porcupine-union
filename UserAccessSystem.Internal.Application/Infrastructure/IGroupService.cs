@@ -22,7 +22,7 @@ public interface IGroupService
         Guid groupId,
         CancellationToken ctx = default
     );
-    Task<Response<bool>> RemovePermissionFromGroupAsync(
+    ValueTask<Response<bool>> RemovePermissionFromGroupAsync(
         Guid permissionId,
         Guid groupId,
         CancellationToken ctx = default
