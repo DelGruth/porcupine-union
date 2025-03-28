@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Contract.Requests;
+using UserAccessSystem.Domain.Permissions;
 using UserAccessSystem.Domain.User;
 using UserAccessSystem.Domain.UserDetail;
 using UserAccessSystem.Internal.Application.Peristence;
+using UserAccessSystem.Internal.Persistence.Common;
 using UserAccessSystem.Internal.Persistence.DbContext;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
@@ -253,6 +255,124 @@ public class UserRepository : Repository<User?>, IUserRepository
             return new Response<bool>(
                 ErrorCode.UnexpectedError,
                 $"Error deleting user: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Response<IEnumerable<Permission>>> GetUserPermissionsAsync(
+        Guid userId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var user = await dbContext
+                .Users.Where(u => u.Id == userId)
+                .Where(u => !u.IsDeleted)
+                .Include(u => u.UserPermissions.Where(p => !p.IsDeleted))
+                .ThenInclude(p => p.Permission)
+                .Include(u => u.Groups.Where(g => !g.IsDeleted))
+                .ThenInclude(g => g.Group)
+                .ThenInclude(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
+                .ThenInclude(gp => gp.Permission)
+                .FirstOrDefaultAsync(ctx);
+
+            if (user == null)
+                return new Response<IEnumerable<Permission>>(
+                    ErrorCode.UserNotFound,
+                    $"User with ID {userId} not found"
+                );
+
+            // Combine direct user permissions and group permissions
+            var permissions = user
+                .UserPermissions.Select(up => up.Permission)
+                .Union(
+                    user.Groups.SelectMany(g => g.Group.GroupPermissions)
+                        .Select(gp => gp.Permission)
+                )
+                .Distinct();
+
+            return new Response<IEnumerable<Permission>>(permissions);
+        }
+        catch (Exception ex)
+        {
+            return new Response<IEnumerable<Permission>>(
+                ErrorCode.UnexpectedError,
+                $"Error retrieving user permissions: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Response<bool>> AddPermissionToUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var userPermission = new UserPermission
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                PermissionId = permissionId,
+                GroupId = groupId,
+                CreatedAtDateTime = DateTime.UtcNow,
+                IsDeleted = false,
+                Version = 1,
+                EditedById = ConstantIdValues.EditedById,
+            };
+
+            await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Error adding permission to user: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Response<bool>> RemovePermissionFromUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var userPermission = await dbContext.UserPermissions.FirstOrDefaultAsync(
+                up =>
+                    up.UserId == userId
+                    && up.GroupId == groupId
+                    && up.PermissionId == permissionId
+                    && !up.IsDeleted,
+                ctx
+            );
+
+            if (userPermission == null)
+                return new Response<bool>(
+                    ErrorCode.NotFound,
+                    "Permission is not assigned to the user in this group"
+                );
+
+            userPermission.IsDeleted = true;
+            userPermission.EditedDateTime = DateTime.UtcNow;
+            userPermission.Version++;
+            userPermission.EditedById = ConstantIdValues.EditedById;
+
+            dbContext.UserPermissions.Update(userPermission);
+            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Error removing permission from user: {ex.Message}"
             );
         }
     }

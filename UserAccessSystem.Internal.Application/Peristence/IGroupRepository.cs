@@ -27,4 +27,16 @@ public interface IGroupRepository : IRepository<Group>
         Guid groupId,
         CancellationToken ctx = default
     );
+    Task<Response<bool>> AddUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    );
+    Task<Response<bool>> RemoveUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    );
 }

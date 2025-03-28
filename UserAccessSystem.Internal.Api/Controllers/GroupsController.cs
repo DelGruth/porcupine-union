@@ -63,4 +63,20 @@ public class GroupsController(IGroupService groupService) : ControllerBase
     [Route("users/distribution")]
     public async Task<Response<GroupUserDistributionResponse>> GetUsersPerGroupCount() =>
         await groupService.GetUsersPerGroupCountAsync();
+
+    [HttpPost]
+    [Route("{groupId:guid}/users/{userId:guid}/permissions/{permissionId:guid}")]
+    public async Task<Response<bool>> AddUserPermissionInGroup(
+        [FromRoute] Guid groupId,
+        [FromRoute] Guid userId,
+        [FromRoute] Guid permissionId
+    ) => await groupService.AddUserPermissionInGroupAsync(userId, groupId, permissionId);
+
+    [HttpDelete]
+    [Route("{groupId:guid}/users/{userId:guid}/permissions/{permissionId:guid}")]
+    public async Task<Response<bool>> RemoveUserPermissionInGroup(
+        [FromRoute] Guid groupId,
+        [FromRoute] Guid userId,
+        [FromRoute] Guid permissionId
+    ) => await groupService.RemoveUserPermissionInGroupAsync(userId, groupId, permissionId);
 }

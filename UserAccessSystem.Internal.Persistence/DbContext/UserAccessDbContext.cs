@@ -11,10 +11,12 @@ namespace UserAccessSystem.Internal.Persistence.DbContext;
 public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     : Microsoft.EntityFrameworkCore.DbContext(options: opt)
 {
-    public DbSet<User?> Users { get; set; }
+    public DbSet<User> Users { get; set; }
     public DbSet<Group> Groups { get; set; }
-    public DbSet<UserGroupMembership> UserGroupMemberships { get; set; }
     public DbSet<Permission> Permissions { get; set; }
+    public DbSet<GroupPermission> GroupPermissions { get; set; }
+    public DbSet<UserPermission> UserPermissions { get; set; }
+    public DbSet<UserGroupMembership> UserGroupMemberships { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

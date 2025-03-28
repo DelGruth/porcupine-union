@@ -81,6 +81,59 @@ public class UserService(HybridCache cache, IUserRepository userRepository)
         return result;
     }
 
+    public async Task<Response<IEnumerable<PermissionDto>>> GetUserPermissionsAsync(
+        Guid userId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await _userRepository.GetUserPermissionsAsync(userId, ctx);
+        return !result.Success
+            ? new Response<IEnumerable<PermissionDto>>(result.ErrorCode, result.Message)
+            : new Response<IEnumerable<PermissionDto>>(
+                result.Data.Select(p => new PermissionDto(p))
+            );
+    }
+
+    public async Task<Response<bool>> AddPermissionToUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await _userRepository.AddPermissionToUserAsync(
+            userId,
+            permissionId,
+            groupId,
+            ctx
+        );
+        if (result.Success)
+        {
+            await InvalidateUserCache(userId);
+        }
+        return result;
+    }
+
+    public async Task<Response<bool>> RemovePermissionFromUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await _userRepository.RemovePermissionFromUserAsync(
+            userId,
+            permissionId,
+            groupId,
+            ctx
+        );
+        if (result.Success)
+        {
+            await InvalidateUserCache(userId);
+        }
+        return result;
+    }
+
     private async Task InvalidateUserCache(Guid userId)
     {
         const string allUsersCacheKey = "GetAllUsers";

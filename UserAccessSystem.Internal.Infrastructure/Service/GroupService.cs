@@ -152,6 +152,56 @@ public class GroupService(HybridCache cache, IGroupRepository groupRepository)
         );
     }
 
+    public async Task<Response<bool>> AddUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await groupRepository.AddUserPermissionInGroupAsync(
+            userId,
+            groupId,
+            permissionId,
+            ctx
+        );
+        if (result.Success)
+        {
+            await InvalidateGroupCache(groupId);
+        }
+        return result;
+    }
+
+    public async Task<Response<bool>> RemoveUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await groupRepository.RemoveUserPermissionInGroupAsync(
+            userId,
+            groupId,
+            permissionId,
+            ctx
+        );
+        if (result.Success)
+        {
+            await InvalidateGroupCache(groupId);
+        }
+        return result;
+    }
+
+    public async Task<Response<bool>> DeleteAsync(Guid id, CancellationToken ctx = default)
+    {
+        var result = await groupRepository.DeleteAsync(id, ctx);
+        if (result.Success)
+        {
+            await InvalidateGroupCache(id);
+        }
+        return result;
+    }
+
     private async Task InvalidateGroupCache(Guid groupId)
     {
         var cacheKey = $"GetById_Group_{groupId}";

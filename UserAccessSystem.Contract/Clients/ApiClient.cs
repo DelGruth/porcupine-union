@@ -90,4 +90,17 @@ public class ApiClient(HttpClient httpClient)
             return new Response<T>(ErrorCode.UnexpectedError, ex.Message);
         }
     }
+
+    public async Task<Response<T>> PutAsync<T>(string endpoint, object request)
+    {
+        try
+        {
+            var response = await httpClient.PutAsJsonAsync(endpoint, request);
+            return await response.Content.ReadFromJsonAsync<Response<T>>();
+        }
+        catch (Exception ex)
+        {
+            return new Response<T>(ErrorCode.UnexpectedError, ex.Message);
+        }
+    }
 }

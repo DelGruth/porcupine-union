@@ -23,4 +23,20 @@ public interface IUserService
         Guid groupId,
         CancellationToken ctx = default
     );
+    Task<Response<IEnumerable<PermissionDto>>> GetUserPermissionsAsync(
+        Guid userId,
+        CancellationToken ctx = default
+    );
+    Task<Response<bool>> AddPermissionToUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    );
+    Task<Response<bool>> RemovePermissionFromUserAsync(
+        Guid userId,
+        Guid permissionId,
+        Guid groupId,
+        CancellationToken ctx = default
+    );
 }

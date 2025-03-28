@@ -40,4 +40,27 @@ public class UsersController(IUserService userService) : ControllerBase
         [FromRoute] Guid id,
         [FromRoute] Guid groupId
     ) => await userService.RemoveUserFromGroupAsync(id, groupId);
+
+    [HttpGet]
+    [Route("{id:guid}/permissions")]
+    [Auth("SU", true, false)]
+    public async Task<Response<IEnumerable<PermissionDto>>> GetUserPermissions(
+        [FromRoute] Guid id
+    ) => await userService.GetUserPermissionsAsync(id);
+
+    [HttpPost]
+    [Route("{userId:guid}/groups/{groupId:guid}/permissions/{permissionId:guid}")]
+    public async Task<Response<bool>> AddPermissionToUser(
+        [FromRoute] Guid userId,
+        [FromRoute] Guid groupId,
+        [FromRoute] Guid permissionId
+    ) => await userService.AddPermissionToUserAsync(userId, permissionId, groupId);
+
+    [HttpDelete]
+    [Route("{userId:guid}/groups/{groupId:guid}/permissions/{permissionId:guid}")]
+    public async Task<Response<bool>> RemovePermissionFromUser(
+        [FromRoute] Guid userId,
+        [FromRoute] Guid groupId,
+        [FromRoute] Guid permissionId
+    ) => await userService.RemovePermissionFromUserAsync(userId, permissionId, groupId);
 }

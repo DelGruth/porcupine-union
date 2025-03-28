@@ -198,4 +198,78 @@ public class GroupRepository(UserAccessDbContext dbContext)
             );
         }
     }
+
+    public async Task<Response<bool>> AddUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var userPermission = new UserPermission
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                GroupId = groupId,
+                PermissionId = permissionId,
+                CreatedAtDateTime = DateTime.UtcNow,
+                IsDeleted = false,
+                Version = 1,
+                EditedById = ConstantIdValues.EditedById,
+            };
+
+            await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Error adding permission to user in group: {ex.Message}"
+            );
+        }
+    }
+
+    public async Task<Response<bool>> RemoveUserPermissionInGroupAsync(
+        Guid userId,
+        Guid groupId,
+        Guid permissionId,
+        CancellationToken ctx = default
+    )
+    {
+        try
+        {
+            var userPermission = await dbContext.UserPermissions.FirstOrDefaultAsync(
+                up =>
+                    up.UserId == userId
+                    && up.GroupId == groupId
+                    && up.PermissionId == permissionId
+                    && !up.IsDeleted,
+                ctx
+            );
+
+            if (userPermission == null)
+                return new Response<bool>(
+                    ErrorCode.NotFound,
+                    "Permission is not assigned to the user in this group"
+                );
+
+            userPermission.IsDeleted = true;
+            userPermission.EditedDateTime = DateTime.UtcNow;
+            userPermission.Version++;
+            userPermission.EditedById = ConstantIdValues.EditedById;
+
+            dbContext.UserPermissions.Update(userPermission);
+            return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
+        }
+        catch (Exception ex)
+        {
+            return new Response<bool>(
+                ErrorCode.UnexpectedError,
+                $"Error removing permission from user in group: {ex.Message}"
+            );
+        }
+    }
 }
