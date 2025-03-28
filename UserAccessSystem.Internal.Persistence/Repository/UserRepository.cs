@@ -8,15 +8,11 @@ using UserAccessSystem.Internal.Persistence.DbContext;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
 
-public class UserRepository : Repository<User?>, IUserRepository
+public class UserRepository(UserAccessDbContext dbContext)
+    : Repository<User?>(dbContext),
+        IUserRepository
 {
-    private UserAccessDbContext dbContext { get; }
-
-    public UserRepository(UserAccessDbContext dbContext)
-        : base(dbContext)
-    {
-        this.dbContext = dbContext;
-    }
+    private UserAccessDbContext dbContext { get; } = dbContext;
 
     public async Task<Response<IEnumerable<User>>> GetAllAsync(
         DateTime? lastEntry,
