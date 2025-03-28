@@ -1,6 +1,6 @@
 1. Requirements to run<br/>
 .net 9 SDK<br/>
-Blazor<br/>
+Blazor S<br/>
 <br/>
 2. Clone git <br/>
 <br/>
