@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using UserAccessSystem.Contract;
+using UserAccessSystem.Contract.Dtos;
 using UserAccessSystem.Contract.Requests;
 using UserAccessSystem.Contract.Responses;
 using UserAccessSystem.Internal.Application.Infrastructure;
@@ -79,4 +80,14 @@ public class GroupsController(IGroupService groupService) : ControllerBase
         [FromRoute] Guid userId,
         [FromRoute] Guid permissionId
     ) => await groupService.RemoveUserPermissionInGroupAsync(userId, groupId, permissionId);
+
+    [HttpGet]
+    [Route("{groupId:guid}/permissions")]
+    public async Task<Response<IEnumerable<PermissionDto>>> GetGroupPermissions(
+        [FromRoute] Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        return await groupService.GetGroupPermissionsAsync(groupId, ctx);
+    }
 }

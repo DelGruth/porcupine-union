@@ -202,6 +202,22 @@ public class GroupService(HybridCache cache, IGroupRepository groupRepository)
         return result;
     }
 
+    public async Task<Response<IEnumerable<PermissionDto>>> GetGroupPermissionsAsync(
+        Guid groupId,
+        CancellationToken ctx = default
+    )
+    {
+        var result = await groupRepository.GetByIdAsync(groupId, ctx);
+        if (!result.Success)
+            return new Response<IEnumerable<PermissionDto>>(result.ErrorCode, result.Message);
+
+        var permissions = result
+            .Data.GroupPermissions.Where(gp => !gp.IsDeleted)
+            .Select(gp => new PermissionDto(gp.Permission));
+
+        return new Response<IEnumerable<PermissionDto>>(permissions);
+    }
+
     private async Task InvalidateGroupCache(Guid groupId)
     {
         var cacheKey = $"GetById_Group_{groupId}";

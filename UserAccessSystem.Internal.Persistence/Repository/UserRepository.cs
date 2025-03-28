@@ -10,7 +10,7 @@ using UserAccessSystem.Internal.Persistence.DbContext;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
 
-public class UserRepository : Repository<User?>, IUserRepository
+public class UserRepository : Repository<User>, IUserRepository
 {
     private UserAccessDbContext dbContext { get; }
 
@@ -184,16 +184,51 @@ public class UserRepository : Repository<User?>, IUserRepository
     {
         try
         {
-            dbContext.UserGroupMemberships.Add(
-                new UserGroupMembership() { UserId = id, GroupId = groupId }
+            var existingMembership = await dbContext.UserGroupMemberships.FirstOrDefaultAsync(
+                m => m.UserId == id && m.GroupId == groupId,
+                ctx
             );
+
+            if (existingMembership != null)
+            {
+                if (!existingMembership.IsDeleted)
+                {
+                    return new Response<bool>(
+                        ErrorCode.UnexpectedError,
+                        "User is already a member of this group"
+                    );
+                }
+
+                existingMembership.IsDeleted = false;
+                existingMembership.EditedDateTime = DateTime.UtcNow;
+                existingMembership.Version++;
+                existingMembership.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.UserGroupMemberships.Update(existingMembership);
+            }
+            else
+            {
+                var membership = new UserGroupMembership
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = id,
+                    GroupId = groupId,
+                    CreatedAtDateTime = DateTime.UtcNow,
+                    IsDeleted = false,
+                    Version = 1,
+                    EditedById = ConstantIdValues.EditedById,
+                };
+
+                await dbContext.UserGroupMemberships.AddAsync(membership, ctx);
+            }
+
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
         {
             return new Response<bool>(
                 ErrorCode.UnexpectedError,
-                $"Error creating user: {ex.Message}"
+                $"Error adding user to group: {ex.Message}"
             );
         }
     }
@@ -241,20 +276,29 @@ public class UserRepository : Repository<User?>, IUserRepository
     {
         try
         {
-            var groupMembership = await dbContext.UserGroupMemberships.FirstOrDefaultAsync(
-                ug => ug.UserId == id && ug.GroupId == groupId,
-                cancellationToken: ctx
+            var membership = await dbContext.UserGroupMemberships.FirstOrDefaultAsync(
+                m => m.UserId == id && m.GroupId == groupId && !m.IsDeleted,
+                ctx
             );
 
-            groupMembership!.IsDeleted = true;
-            dbContext.Entry(groupMembership).State = EntityState.Modified;
+            if (membership == null)
+            {
+                return new Response<bool>(ErrorCode.NotFound, "User is not a member of this group");
+            }
+
+            membership.IsDeleted = true;
+            membership.EditedDateTime = DateTime.UtcNow;
+            membership.Version++;
+            membership.EditedById = ConstantIdValues.EditedById;
+
+            dbContext.UserGroupMemberships.Update(membership);
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
         {
             return new Response<bool>(
                 ErrorCode.UnexpectedError,
-                $"Error deleting user: {ex.Message}"
+                $"Error removing user from group: {ex.Message}"
             );
         }
     }
@@ -267,29 +311,17 @@ public class UserRepository : Repository<User?>, IUserRepository
         try
         {
             var user = await dbContext
-                .Users.Where(u => u.Id == userId)
-                .Where(u => !u.IsDeleted)
-                .Include(u => u.UserPermissions.Where(p => !p.IsDeleted))
-                .ThenInclude(p => p.Permission)
-                .Include(u => u.Groups.Where(g => !g.IsDeleted))
-                .ThenInclude(g => g.Group)
-                .ThenInclude(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
-                .ThenInclude(gp => gp.Permission)
+                .Users.Where(u => u.Id == userId && !u.IsDeleted)
+                .Include(u => u.UserPermissions)
+                .ThenInclude(up => up.Permission)
                 .FirstOrDefaultAsync(ctx);
 
             if (user == null)
-                return new Response<IEnumerable<Permission>>(
-                    ErrorCode.UserNotFound,
-                    $"User with ID {userId} not found"
-                );
+                return new Response<IEnumerable<Permission>>(ErrorCode.NotFound, "User not found");
 
-            // Combine direct user permissions and group permissions
             var permissions = user
-                .UserPermissions.Select(up => up.Permission)
-                .Union(
-                    user.Groups.SelectMany(g => g.Group.GroupPermissions)
-                        .Select(gp => gp.Permission)
-                )
+                .UserPermissions.Where(up => !up.IsDeleted && !up.Permission.IsDeleted)
+                .Select(up => up.Permission)
                 .Distinct();
 
             return new Response<IEnumerable<Permission>>(permissions);
@@ -312,19 +344,46 @@ public class UserRepository : Repository<User?>, IUserRepository
     {
         try
         {
-            var userPermission = new UserPermission
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                PermissionId = permissionId,
-                GroupId = groupId,
-                CreatedAtDateTime = DateTime.UtcNow,
-                IsDeleted = false,
-                Version = 1,
-                EditedById = ConstantIdValues.EditedById,
-            };
+            var existingPermission = await dbContext.UserPermissions.FirstOrDefaultAsync(
+                up =>
+                    up.UserId == userId && up.GroupId == groupId && up.PermissionId == permissionId,
+                ctx
+            );
 
-            await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            if (existingPermission != null)
+            {
+                if (!existingPermission.IsDeleted)
+                {
+                    return new Response<bool>(
+                        ErrorCode.UnexpectedError,
+                        "Permission is already assigned to the user in this group"
+                    );
+                }
+
+                existingPermission.IsDeleted = false;
+                existingPermission.EditedDateTime = DateTime.UtcNow;
+                existingPermission.Version++;
+                existingPermission.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.UserPermissions.Update(existingPermission);
+            }
+            else
+            {
+                var userPermission = new UserPermission
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    PermissionId = permissionId,
+                    GroupId = groupId,
+                    CreatedAtDateTime = DateTime.UtcNow,
+                    IsDeleted = false,
+                    Version = 1,
+                    EditedById = ConstantIdValues.EditedById,
+                };
+
+                await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            }
+
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
@@ -355,10 +414,12 @@ public class UserRepository : Repository<User?>, IUserRepository
             );
 
             if (userPermission == null)
+            {
                 return new Response<bool>(
                     ErrorCode.NotFound,
                     "Permission is not assigned to the user in this group"
                 );
+            }
 
             userPermission.IsDeleted = true;
             userPermission.EditedDateTime = DateTime.UtcNow;

@@ -51,4 +51,8 @@ public interface IGroupService
         Guid permissionId,
         CancellationToken ctx = default
     );
+    Task<Response<IEnumerable<PermissionDto>>> GetGroupPermissionsAsync(
+        Guid groupId,
+        CancellationToken ctx = default
+    );
 }

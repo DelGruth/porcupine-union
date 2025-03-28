@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using UserAccessSystem.Contract;
 using UserAccessSystem.Domain.Permissions;
 using UserAccessSystem.Internal.Application.Peristence;
+using UserAccessSystem.Internal.Persistence.Common;
 using UserAccessSystem.Internal.Persistence.DbContext;
 
 namespace UserAccessSystem.Internal.Persistence.Repository;
@@ -63,9 +64,37 @@ public class PermissionRepository(UserAccessDbContext dbContext)
     {
         try
         {
+            var existingPermission = await dbContext.Permissions.FirstOrDefaultAsync(
+                p => p.Name == permission.Name,
+                ctx
+            );
+
+            if (existingPermission != null)
+            {
+                if (!existingPermission.IsDeleted)
+                {
+                    return new Response<Permission>(
+                        ErrorCode.UnexpectedError,
+                        $"Permission with name '{permission.Name}' already exists"
+                    );
+                }
+
+                existingPermission.IsDeleted = false;
+                existingPermission.EditedDateTime = DateTime.UtcNow;
+                existingPermission.Version++;
+                existingPermission.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.Permissions.Update(existingPermission);
+                await dbContext.SaveChangesAsync(ctx);
+
+                return new Response<Permission>(existingPermission);
+            }
+
             permission.Id = Guid.NewGuid();
             permission.CreatedAtDateTime = DateTime.UtcNow;
             permission.IsDeleted = false;
+            permission.Version = 1;
+            permission.EditedById = ConstantIdValues.EditedById;
 
             await dbContext.Permissions.AddAsync(permission, ctx);
             await dbContext.SaveChangesAsync(ctx);
@@ -118,8 +147,8 @@ public class PermissionRepository(UserAccessDbContext dbContext)
         try
         {
             var permissions = await dbContext
-                .Permissions.Where(p => p.GroupPermissions.Any(gp => gp.GroupId == groupId))
-                .Where(p => !p.IsDeleted)
+                .Permissions.Where(p => !p.IsDeleted)
+                .Where(p => p.GroupPermissions.Any(gp => gp.GroupId == groupId && !gp.IsDeleted))
                 .OrderBy(p => p.Name)
                 .ToListAsync(ctx);
 

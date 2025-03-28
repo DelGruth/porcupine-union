@@ -37,12 +37,17 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     {
         modelBuilder.Entity<UserPermission>(entity =>
         {
-            entity.HasKey(x => new
-            {
-                x.UserId,
-                x.PermissionId,
-                x.IsDeleted,
-            });
+            entity.HasKey(x => x.Id);
+
+            entity
+                .HasIndex(x => new
+                {
+                    x.UserId,
+                    x.PermissionId,
+                    x.GroupId,
+                    x.IsDeleted,
+                })
+                .IsUnique();
 
             entity.Property(x => x.UserId).IsRequired();
             entity.Property(x => x.PermissionId).IsRequired();
@@ -69,14 +74,20 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     {
         modelBuilder.Entity<GroupPermission>(entity =>
         {
-            entity.HasKey(x => new
-            {
-                x.GroupId,
-                x.PermissionId,
-                x.IsDeleted,
-            });
+            entity.HasKey(x => x.Id);
+
+            entity
+                .HasIndex(x => new
+                {
+                    x.GroupId,
+                    x.PermissionId,
+                    x.IsDeleted,
+                })
+                .IsUnique();
 
             entity.Property(x => x.GroupId).IsRequired();
+            entity.Property(x => x.PermissionId).IsRequired();
+
             entity
                 .HasOne(x => x.Group)
                 .WithMany(x => x.GroupPermissions)
@@ -93,17 +104,22 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
     {
         modelBuilder.Entity<UserGroupMembership>(entity =>
         {
-            entity.HasKey(x => new
-            {
-                x.UserId,
-                x.GroupId,
-                x.IsDeleted,
-            });
+            entity.HasKey(x => x.Id);
+
+            entity
+                .HasIndex(x => new
+                {
+                    x.UserId,
+                    x.GroupId,
+                    x.IsDeleted,
+                })
+                .IsUnique();
 
             entity.Property(x => x.UserId).IsRequired();
+            entity.Property(x => x.GroupId).IsRequired();
+
             entity.HasOne(x => x.User).WithMany(x => x.Groups).HasForeignKey(x => x.UserId);
 
-            entity.Property(x => x.GroupId).IsRequired();
             entity.HasOne(x => x.Group).WithMany(x => x.Users).HasForeignKey(x => x.GroupId);
         });
     }
@@ -260,37 +276,28 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             );
 
         modelBuilder
-            .Entity<UserPermission>()
-            .HasData(
-                new List<UserPermission>()
-                {
-                    new UserPermission
-                    {
-                        UserId = suId,
-                        PermissionId = allPermId,
-                        GroupId = group1Id,
-                    },
-                    new UserPermission
-                    {
-                        UserId = suId,
-                        PermissionId = superUserPermId,
-                        GroupId = group2Id,
-                    },
-                }
-            );
-
-        modelBuilder
             .Entity<GroupPermission>()
             .HasData(
                 new List<GroupPermission>()
                 {
-                    new GroupPermission { GroupId = group1Id, PermissionId = allPermId },
                     new GroupPermission
                     {
+                        Id = Guid.NewGuid(),
+                        GroupId = group1Id,
+                        PermissionId = allPermId,
+                    },
+                    new GroupPermission
+                    {
+                        Id = Guid.NewGuid(),
                         GroupId = group2Id,
                         PermissionId = accountLookupLevel1Id,
                     },
-                    new GroupPermission { GroupId = group2Id, PermissionId = level2GeneralPermId },
+                    new GroupPermission
+                    {
+                        Id = Guid.NewGuid(),
+                        GroupId = group2Id,
+                        PermissionId = level2GeneralPermId,
+                    },
                 }
             );
 
@@ -299,7 +306,12 @@ public class UserAccessDbContext(DbContextOptions<UserAccessDbContext> opt)
             .HasData(
                 new List<UserGroupMembership>
                 {
-                    new UserGroupMembership { UserId = suId, GroupId = group1Id },
+                    new UserGroupMembership
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = suId,
+                        GroupId = group1Id,
+                    },
                 }
             );
     }

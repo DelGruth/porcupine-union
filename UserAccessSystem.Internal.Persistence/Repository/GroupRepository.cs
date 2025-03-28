@@ -48,7 +48,9 @@ public class GroupRepository(UserAccessDbContext dbContext)
             var group = await dbContext
                 .Groups.Where(g => g.Id == id)
                 .Where(g => !g.IsDeleted)
-                .Include(g => g.GroupPermissions.Where(gp => !gp.IsDeleted))
+                .Include(g =>
+                    g.GroupPermissions.Where(gp => !gp.IsDeleted && !gp.Permission.IsDeleted)
+                )
                 .ThenInclude(gp => gp.Permission)
                 .Include(g => g.Users.Where(u => !u.IsDeleted))
                 .ThenInclude(u => u.User)
@@ -75,16 +77,44 @@ public class GroupRepository(UserAccessDbContext dbContext)
     {
         try
         {
-            var membership = new UserGroupMembership
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                GroupId = groupId,
-                CreatedAtDateTime = DateTime.UtcNow,
-                IsDeleted = false,
-            };
+            var existingMembership = await dbContext.UserGroupMemberships.FirstOrDefaultAsync(
+                m => m.UserId == userId && m.GroupId == groupId,
+                ctx
+            );
 
-            await dbContext.UserGroupMemberships.AddAsync(membership, ctx);
+            if (existingMembership != null)
+            {
+                if (!existingMembership.IsDeleted)
+                {
+                    return new Response<bool>(
+                        ErrorCode.UnexpectedError,
+                        "User is already a member of this group"
+                    );
+                }
+
+                existingMembership.IsDeleted = false;
+                existingMembership.EditedDateTime = DateTime.UtcNow;
+                existingMembership.Version++;
+                existingMembership.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.UserGroupMemberships.Update(existingMembership);
+            }
+            else
+            {
+                var membership = new UserGroupMembership
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GroupId = groupId,
+                    CreatedAtDateTime = DateTime.UtcNow,
+                    IsDeleted = false,
+                    Version = 1,
+                    EditedById = ConstantIdValues.EditedById,
+                };
+
+                await dbContext.UserGroupMemberships.AddAsync(membership, ctx);
+            }
+
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
@@ -140,16 +170,46 @@ public class GroupRepository(UserAccessDbContext dbContext)
     {
         try
         {
-            var groupPermission = new GroupPermission
-            {
-                Id = Guid.NewGuid(),
-                PermissionId = permissionId,
-                GroupId = groupId,
-                CreatedAtDateTime = DateTime.UtcNow,
-                IsDeleted = false,
-            };
+            var existingPermission = await dbContext
+                .Set<GroupPermission>()
+                .FirstOrDefaultAsync(
+                    gp => gp.PermissionId == permissionId && gp.GroupId == groupId,
+                    ctx
+                );
 
-            await dbContext.Set<GroupPermission>().AddAsync(groupPermission, ctx);
+            if (existingPermission != null)
+            {
+                if (!existingPermission.IsDeleted)
+                {
+                    return new Response<bool>(
+                        ErrorCode.UnexpectedError,
+                        "Permission is already assigned to this group"
+                    );
+                }
+
+                existingPermission.IsDeleted = false;
+                existingPermission.EditedDateTime = DateTime.UtcNow;
+                existingPermission.Version++;
+                existingPermission.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.Set<GroupPermission>().Update(existingPermission);
+            }
+            else
+            {
+                var groupPermission = new GroupPermission
+                {
+                    Id = Guid.NewGuid(),
+                    PermissionId = permissionId,
+                    GroupId = groupId,
+                    CreatedAtDateTime = DateTime.UtcNow,
+                    IsDeleted = false,
+                    Version = 1,
+                    EditedById = ConstantIdValues.EditedById,
+                };
+
+                await dbContext.Set<GroupPermission>().AddAsync(groupPermission, ctx);
+            }
+
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
@@ -177,10 +237,12 @@ public class GroupRepository(UserAccessDbContext dbContext)
                 );
 
             if (groupPermission == null)
+            {
                 return new Response<bool>(
                     ErrorCode.NotFound,
                     "Permission is not assigned to the specified group"
                 );
+            }
 
             groupPermission.IsDeleted = true;
             groupPermission.EditedDateTime = DateTime.UtcNow;
@@ -208,19 +270,46 @@ public class GroupRepository(UserAccessDbContext dbContext)
     {
         try
         {
-            var userPermission = new UserPermission
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                GroupId = groupId,
-                PermissionId = permissionId,
-                CreatedAtDateTime = DateTime.UtcNow,
-                IsDeleted = false,
-                Version = 1,
-                EditedById = ConstantIdValues.EditedById,
-            };
+            var existingPermission = await dbContext.UserPermissions.FirstOrDefaultAsync(
+                up =>
+                    up.UserId == userId && up.GroupId == groupId && up.PermissionId == permissionId,
+                ctx
+            );
 
-            await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            if (existingPermission != null)
+            {
+                if (!existingPermission.IsDeleted)
+                {
+                    return new Response<bool>(
+                        ErrorCode.UnexpectedError,
+                        "Permission is already assigned to the user in this group"
+                    );
+                }
+
+                existingPermission.IsDeleted = false;
+                existingPermission.EditedDateTime = DateTime.UtcNow;
+                existingPermission.Version++;
+                existingPermission.EditedById = ConstantIdValues.EditedById;
+
+                dbContext.UserPermissions.Update(existingPermission);
+            }
+            else
+            {
+                var userPermission = new UserPermission
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    GroupId = groupId,
+                    PermissionId = permissionId,
+                    CreatedAtDateTime = DateTime.UtcNow,
+                    IsDeleted = false,
+                    Version = 1,
+                    EditedById = ConstantIdValues.EditedById,
+                };
+
+                await dbContext.UserPermissions.AddAsync(userPermission, ctx);
+            }
+
             return new Response<bool>((await dbContext.SaveChangesAsync(ctx)) > 0);
         }
         catch (Exception ex)
@@ -243,10 +332,7 @@ public class GroupRepository(UserAccessDbContext dbContext)
         {
             var userPermission = await dbContext.UserPermissions.FirstOrDefaultAsync(
                 up =>
-                    up.UserId == userId
-                    && up.GroupId == groupId
-                    && up.PermissionId == permissionId
-                    && !up.IsDeleted,
+                    up.UserId == userId && up.GroupId == groupId && up.PermissionId == permissionId,
                 ctx
             );
 
